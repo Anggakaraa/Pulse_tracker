@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ─── Foundation ─────────────────────────────────────────── */
+:root {
+  --background: #FBF8F0;
+  --surface: #F4EFE3;
+  --border: #EAE3D3;
+  --ink: #2A2520;
+  --ink-muted: #8A8178;
+
+  /* ─── Taxonomy categories ──────────────────────────────── */
+  --cat-metabolic: #5C8A6A;
+  --cat-cardiovascular: #2E547A;
+  --cat-inflammation: #B5522A;
+  --cat-hormonal: #6E3D8C;
+  --cat-nutritional: #A8882A;
+  --cat-blood: #7A3A4A;
+  --cat-vitals: #3A7A8C;
+
+  /* ─── Attention states ─────────────────────────────────── */
+  --state-clear: #4A8C62;
+  --state-watch: #A8882A;
+  --state-suboptimal: #B5522A;
+  --state-attention: #A03828;
+
+  /* ─── Spacing ──────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+  --space-7: 64px;
+
+  /* ─── Border radius ────────────────────────────────────── */
+  --radius-card: 6px;
+  --radius-pill: 4px;
+
+  /* ─── Elevation ────────────────────────────────────────── */
+  --shadow-raised: 0px 2px 8px rgba(42, 37, 32, 0.07);
+  --shadow-floating: 0px 8px 32px rgba(42, 37, 32, 0.10);
+
+  /* ─── Motion ───────────────────────────────────────────── */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-micro: 150ms;
+  --duration-transition: 250ms;
+  --duration-enter: 200ms;
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+html,
+body {
+  background-color: var(--background);
+  color: var(--ink);
+  font-family: var(--font-dm-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Typography helpers ─────────────────────────────────── */
+.text-display {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 800;
+  font-size: 56px;
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+}
+
+.text-section {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.text-card-title {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.text-eyebrow {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.text-body {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.text-supporting {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.text-meta {
+  font-family: var(--font-dm-sans), sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ─── Print styles ────────────────────────────────────────── */
+@media print {
+  /* Hide sidebar and navigation */
+  nav,
+  aside,
+  [data-sidebar],
+  .no-print {
+    display: none !important;
+  }
+
+  /* Expand main content to full width */
+  body {
+    background: white !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding: 40px !important;
+    max-width: none !important;
+  }
+
+  /* No box shadows in print */
+  * {
+    box-shadow: none !important;
+    border-color: #d0c8b8 !important;
+  }
+}
