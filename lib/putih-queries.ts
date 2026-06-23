@@ -147,3 +147,38 @@ export function formatPutihDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
+
+export interface PutihProgressionMatrix {
+  tests: { id: string; date: string; lab_name: string | null }[];
+  // metric_key → test_id → { value, lab_range_low, lab_range_high }
+  matrix: Record<string, Record<string, { value: number; lab_range_low: number | null; lab_range_high: number | null } | null>>;
+}
+
+export async function getPutihProgressionMatrix(): Promise<PutihProgressionMatrix> {
+  const { data: tests } = await supabase
+    .from("tests")
+    .select("id, date, lab_name")
+    .eq("subject", "putih")
+    .order("date", { ascending: true });
+
+  if (!tests || tests.length === 0) return { tests: [], matrix: {} };
+
+  const testIds = tests.map(t => t.id);
+
+  const { data: readings } = await supabase
+    .from("readings")
+    .select("test_id, metric_key, value, lab_range_low, lab_range_high")
+    .in("test_id", testIds);
+
+  const matrix: PutihProgressionMatrix["matrix"] = {};
+  for (const r of readings ?? []) {
+    if (!matrix[r.metric_key]) matrix[r.metric_key] = {};
+    matrix[r.metric_key][r.test_id] = {
+      value: r.value,
+      lab_range_low: r.lab_range_low,
+      lab_range_high: r.lab_range_high,
+    };
+  }
+
+  return { tests, matrix };
+}

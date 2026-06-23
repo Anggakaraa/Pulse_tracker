@@ -1,7 +1,8 @@
 import { colors } from "@/lib/tokens";
 import { PUTIH_METRICS, PUTIH_METRIC_MAP } from "@/lib/putih-metrics";
-import { getPutihLatestReadings, getPutihReadingsHistory } from "@/lib/putih-queries";
+import { getPutihLatestReadings, getPutihReadingsHistory, getPutihProgressionMatrix, formatPutihDate } from "@/lib/putih-queries";
 import PutihMetricRow from "@/components/PutihMetricRow";
+import PutihExportButtons from "@/components/PutihExportButtons";
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -27,6 +28,8 @@ function SectionHeader({ title }: { title: string }) {
 
 export default async function PutihJourneyPage() {
   const latestReadings = await getPutihLatestReadings();
+  const progressionData = await getPutihProgressionMatrix();
+  const formattedDates = Object.fromEntries(progressionData.tests.map(t => [t.id, formatPutihDate(t.date)]));
   const latestMap = Object.fromEntries(latestReadings.map(r => [r.metric_key, r]));
 
   // Fetch history for all metrics that have data
@@ -42,28 +45,31 @@ export default async function PutihJourneyPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: "32px" }}>
-        <p style={{
-          fontFamily: "var(--font-outfit)",
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: colors.inkMuted,
-          margin: "0 0 8px 0",
-        }}>
-          Putih
-        </p>
-        <h1 style={{
-          fontFamily: "var(--font-outfit)",
-          fontSize: "28px",
-          fontWeight: 600,
-          color: colors.ink,
-          margin: 0,
-          letterSpacing: "-0.01em",
-        }}>
-          Health Journey
-        </h1>
+      <div style={{ marginBottom: "32px", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+        <div>
+          <p style={{
+            fontFamily: "var(--font-outfit)",
+            fontSize: "11px",
+            fontWeight: 600,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: colors.inkMuted,
+            margin: "0 0 8px 0",
+          }}>
+            Putih
+          </p>
+          <h1 style={{
+            fontFamily: "var(--font-outfit)",
+            fontSize: "28px",
+            fontWeight: 600,
+            color: colors.ink,
+            margin: 0,
+            letterSpacing: "-0.01em",
+          }}>
+            Health Journey
+          </h1>
+        </div>
+        <PutihExportButtons data={progressionData} formattedDates={formattedDates} />
       </div>
 
       {!hasAnyData ? (
