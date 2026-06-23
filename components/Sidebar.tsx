@@ -190,6 +190,33 @@ export default function Sidebar() {
           active={pathname === cat.href}
         />
       ))}
+
+      <Divider />
+
+      {/* Putih */}
+      <SectionLabel>Putih</SectionLabel>
+      <NavItem
+        label="Health Journey"
+        href="/putih/journey"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 9 L3.5 5.5 L6 7 L8.5 3 L11 5" />
+          </svg>
+        }
+        active={pathname.startsWith("/putih/journey")}
+      />
+      <NavItem
+        label="Test Log"
+        href="/putih/tests"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="2" y1="3" x2="10" y2="3" />
+            <line x1="2" y1="6" x2="10" y2="6" />
+            <line x1="2" y1="9" x2="7" y2="9" />
+          </svg>
+        }
+        active={pathname.startsWith("/putih/tests")}
+      />
     </aside>
   );
 }
