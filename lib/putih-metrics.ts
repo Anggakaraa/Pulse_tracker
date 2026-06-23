@@ -11,7 +11,7 @@ export interface PutihMetric {
 
 export const PUTIH_METRICS: PutihMetric[] = [
   // General
-  { key: "weight_kg", name: "Weight", unit: "kg", section: "general", rangeLow: 18, rangeHigh: 22 },
+  { key: "weight_kg", name: "Weight", unit: "kg", section: "general", rangeLow: 18, rangeHigh: 20 },
 
   // Chemistry — organ function
   { key: "alb",  name: "Albumin",               unit: "g/L",     section: "chemistry",   rangeLow: 25,   rangeHigh: 44   },
