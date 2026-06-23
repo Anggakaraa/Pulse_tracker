@@ -106,7 +106,7 @@ export const FITNESS_KEYS = [
  */
 async function fetchAll(): Promise<{ tests: DbTest[]; readings: ReadingWithDate[] }> {
   const [{ data: tests }, { data: readings }] = await Promise.all([
-    supabase.from("tests").select("id, date, lab_name, notes").order("date", { ascending: false }),
+    supabase.from("tests").select("id, date, lab_name, notes").eq("subject", "human").order("date", { ascending: false }),
     supabase.from("readings").select("id, test_id, metric_key, value, unit, lab_range_low, lab_range_high, attention_state, annotation"),
   ]);
 
@@ -824,4 +824,46 @@ export async function getAttentionItems(): Promise<AttentionItem[]> {
       };
     })
     .sort((a, b) => BADGE_ORDER.indexOf(a.badge) - BADGE_ORDER.indexOf(b.badge));
+}
+
+// ─── Human Progression Matrix (for export) ───────────────────────────────────
+
+export interface HumanProgressionCell {
+  value: number;
+  unit: string;
+  badge: StatusBadge | null;
+  lab_range_low: number | null;
+  lab_range_high: number | null;
+}
+
+export interface HumanProgressionMatrix {
+  tests: { id: string; date: string; lab_name: string | null }[];
+  // category → metric_key → test_id → cell
+  matrix: Record<string, Record<string, Record<string, HumanProgressionCell>>>;
+}
+
+export async function getHumanProgressionMatrix(): Promise<HumanProgressionMatrix> {
+  const { tests, readings } = await fetchAll();
+  const orderedTests = [...tests].sort((a, b) => a.date.localeCompare(b.date));
+
+  const matrix: HumanProgressionMatrix["matrix"] = {};
+
+  for (const r of readings) {
+    const meta = METRIC_CATALOG[r.metric_key];
+    if (!meta) continue;
+    const cat = meta.category;
+    const badge = computeStatusBadge(r.value, meta);
+
+    if (!matrix[cat]) matrix[cat] = {};
+    if (!matrix[cat][r.metric_key]) matrix[cat][r.metric_key] = {};
+    matrix[cat][r.metric_key][r.test_id] = {
+      value: r.value,
+      unit: r.unit,
+      badge,
+      lab_range_low: r.lab_range_low,
+      lab_range_high: r.lab_range_high,
+    };
+  }
+
+  return { tests: orderedTests, matrix };
 }

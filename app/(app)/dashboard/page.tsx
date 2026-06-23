@@ -11,8 +11,10 @@ import {
   getAttentionItems,
   getLongevityData,
   getActiveExperiments,
+  getHumanProgressionMatrix,
   formatTestDate,
 } from "@/lib/queries";
+import HumanExportButtons from "@/components/HumanExportButtons";
 
 function Eyebrow({ children }: { children: string }) {
   return (
@@ -37,13 +39,15 @@ function pctChange(baseline: number, latest: number) {
 }
 
 export default async function Dashboard() {
-  const [cards, attentionItems, longevityItems, activeExperiments, allTests] = await Promise.all([
+  const [cards, attentionItems, longevityItems, activeExperiments, allTests, progressionData] = await Promise.all([
     getDashboardCardData(),
     getAttentionItems(),
     getLongevityData(),
     getActiveExperiments(),
     getAllTests(),
+    getHumanProgressionMatrix(),
   ]);
+  const formattedDates = Object.fromEntries(progressionData.tests.map(t => [t.id, formatTestDate(t.date)]));
 
   const recentTests = allTests.slice(0, 3);
   const latestTest = allTests[0];
@@ -75,9 +79,12 @@ export default async function Dashboard() {
             Your system at a glance
           </h1>
         </div>
-        <Link href="/upload">
-          <Button variant="primary">+ New test</Button>
-        </Link>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <HumanExportButtons data={progressionData} formattedDates={formattedDates} />
+          <Link href="/upload">
+            <Button variant="primary">+ New test</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Unified grid — 3 columns */}
