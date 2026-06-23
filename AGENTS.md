@@ -59,6 +59,26 @@ This project uses inline styles with token values — not Tailwind utility class
 The only valid use of `className` is for print media query targets (`.no-print`) and font variables (`var(--font-outfit)`).
 Do not mix styles and className.
 
+## Rule 10 — Every schema change requires a migration file
+
+Before altering the database schema, create a numbered SQL file in `migrations/`.
+File naming: `[NNN]_[short_description].sql` (e.g. `006_readings_source_url.sql`).
+Every migration file must use `ADD COLUMN IF NOT EXISTS` so it is safe to re-run.
+Never alter the database directly from the Supabase dashboard without a migration file.
+After running the migration, update `DATA_DICTIONARY.md` in the same session.
+
+## Rule 11 — Verify column names against DATA_DICTIONARY.md before querying
+
+Before writing any new Supabase query, check `DATA_DICTIONARY.md` for the exact column names.
+Never assume a column exists — verify it.
+If a column is needed but doesn't exist, create a migration first.
+
+## Rule 12 — All experiment queries must filter by subject
+
+Any query that joins `experiments` to `tests` must add `.eq("subject", "human")` on the tests side.
+Experiments are human-only. Without this filter, Putih test data can contaminate experiment results.
+See Known Issues #1 and #2 in `DATA_DICTIONARY.md`.
+
 ## Rule 9 — Document deviations
 
 If a rule must be broken (e.g. a genuinely new pattern), document it here or in `documentation/components.md` immediately.
