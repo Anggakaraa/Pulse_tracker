@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { colors } from "@/lib/tokens";
 import { getPutihTests, formatPutihDate } from "@/lib/putih-queries";
+import PutihTestRow from "./PutihTestRow";
 
 export default async function PutihTestsPage() {
   const tests = await getPutihTests();
@@ -63,49 +64,14 @@ export default async function PutihTestsPage() {
       ) : (
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
           {tests.map((test, i) => (
-            <Link key={test.id} href={`/putih/tests/${test.id}`} style={{ textDecoration: "none" }}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "16px 20px",
-                borderBottom: i < tests.length - 1 ? `1px solid ${colors.border}` : "none",
-                cursor: "pointer",
-                backgroundColor: "transparent",
-                transition: `background-color 150ms`,
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = colors.surface)}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-              >
-                <div style={{ flex: 1 }}>
-                  <p style={{
-                    fontFamily: "var(--font-outfit)",
-                    fontSize: "15px",
-                    fontWeight: 400,
-                    color: colors.ink,
-                    margin: "0 0 2px 0",
-                  }}>
-                    {formatPutihDate(test.date)}
-                  </p>
-                  {test.lab_name && (
-                    <p style={{
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "13px",
-                      color: colors.inkMuted,
-                      margin: 0,
-                    }}>
-                      {test.lab_name}
-                    </p>
-                  )}
-                </div>
-                <span style={{
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "13px",
-                  color: colors.inkMuted,
-                }}>
-                  {test.reading_count} marker{test.reading_count !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </Link>
+            <PutihTestRow
+              key={test.id}
+              id={test.id}
+              date={formatPutihDate(test.date)}
+              labName={test.lab_name}
+              readingCount={test.reading_count}
+              isLast={i === tests.length - 1}
+            />
           ))}
         </div>
       )}
