@@ -168,7 +168,8 @@ export async function getPutihProgressionMatrix(): Promise<PutihProgressionMatri
   const { data: readings } = await supabase
     .from("readings")
     .select("test_id, metric_key, value, lab_range_low, lab_range_high")
-    .in("test_id", testIds);
+    .in("test_id", testIds)
+    .in("metric_key", Object.keys(PUTIH_METRIC_MAP));
 
   const matrix: PutihProgressionMatrix["matrix"] = {};
   for (const r of readings ?? []) {

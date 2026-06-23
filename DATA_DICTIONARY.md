@@ -132,11 +132,11 @@ experiments read tests indirectly:
 
 ## Known issues (data layer)
 
-| # | Issue | Location | Fix |
+| # | Issue | Location | Status |
 |---|---|---|---|
-| 1 | `getActiveExperiments` fetches tests without `subject = 'human'` filter | `lib/queries.ts:462` | Add `.eq("subject", "human")` |
-| 2 | `getExperimentDetail` fetches tests without `subject = 'human'` filter | `lib/queries.ts:635` | Add `.eq("subject", "human")` |
-| 3 | `getPutihProgressionMatrix` fetches all readings without metric_key filter | `lib/putih-queries.ts:170` | Add `.in("metric_key", Object.keys(PUTIH_METRIC_MAP))` |
+| 1 | `getActiveExperiments` fetches tests without `subject = 'human'` filter | `lib/queries.ts` | ✅ Fixed 2026-06-23 |
+| 2 | `getExperimentDetail` fetches tests without `subject = 'human'` filter | `lib/queries.ts` | ✅ Fixed 2026-06-23 |
+| 3 | `getPutihProgressionMatrix` fetches all readings without metric_key filter | `lib/putih-queries.ts` | ✅ Fixed 2026-06-23 |
 
 ---
 

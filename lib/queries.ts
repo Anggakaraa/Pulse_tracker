@@ -457,10 +457,11 @@ export async function getActiveExperiments(): Promise<ActiveExperiment[]> {
     let metricStats: ActiveExperimentMetricStat[] = [];
 
     if (targetedEms.length > 0) {
-      // Fetch tests within experiment window
+      // Fetch tests within experiment window — human only
       const { data: tests } = await supabase
         .from("tests")
         .select("id, date")
+        .eq("subject", "human")
         .gte("date", e.start_date)
         .order("date", { ascending: true });
 
@@ -630,10 +631,11 @@ export async function getExperimentDetail(id: string): Promise<ExperimentDetail 
     (expMetrics ?? []).map(em => [em.metric_key, { low: em.target_low ?? null, high: em.target_high ?? null }])
   );
 
-  // Fetch tests within experiment date range
+  // Fetch tests within experiment date range — human only
   let testQuery = supabase
     .from("tests")
     .select("id, date, lab_name")
+    .eq("subject", "human")
     .gte("date", exp.start_date)
     .order("date", { ascending: true });
 
