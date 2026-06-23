@@ -1,4 +1,4 @@
-export type PutihSection = "chemistry" | "hematology";
+export type PutihSection = "chemistry" | "hematology" | "general";
 
 export interface PutihMetric {
   key: string;
@@ -10,6 +10,9 @@ export interface PutihMetric {
 }
 
 export const PUTIH_METRICS: PutihMetric[] = [
+  // General
+  { key: "weight_kg", name: "Weight", unit: "kg", section: "general", rangeLow: null, rangeHigh: null },
+
   // Chemistry — organ function
   { key: "alb",  name: "Albumin",               unit: "g/L",     section: "chemistry",   rangeLow: 25,   rangeHigh: 44   },
   { key: "alp",  name: "Alkaline Phosphatase",   unit: "µ/L",     section: "chemistry",   rangeLow: 20,   rangeHigh: 150  },

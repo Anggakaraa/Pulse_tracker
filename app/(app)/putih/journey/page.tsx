@@ -38,6 +38,7 @@ export default async function PutihJourneyPage() {
   );
   const historyMap = Object.fromEntries(histories);
 
+  const generalMetrics = PUTIH_METRICS.filter(m => m.section === "general");
   const chemistryMetrics = PUTIH_METRICS.filter(m => m.section === "chemistry");
   const hematologyMetrics = PUTIH_METRICS.filter(m => m.section === "hematology");
 
@@ -85,6 +86,29 @@ export default async function PutihJourneyPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* General */}
+          {generalMetrics.some(m => latestMap[m.key]) && (
+            <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
+              <SectionHeader title="General" />
+              {generalMetrics.map(metric => {
+                const reading = latestMap[metric.key];
+                if (!reading) return null;
+                return (
+                  <PutihMetricRow
+                    key={metric.key}
+                    metricKey={metric.key}
+                    name={metric.name}
+                    value={reading.value}
+                    unit={metric.unit}
+                    rangeLow={reading.lab_range_low ?? metric.rangeLow}
+                    rangeHigh={reading.lab_range_high ?? metric.rangeHigh}
+                    history={historyMap[metric.key] ?? []}
+                  />
+                );
+              })}
+            </div>
+          )}
+
           {/* Chemistry */}
           <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
             <SectionHeader title="Chemistry" />
