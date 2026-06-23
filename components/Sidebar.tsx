@@ -217,6 +217,38 @@ export default function Sidebar() {
         }
         active={pathname.startsWith("/putih/tests")}
       />
+      <a href="https://drive.google.com/drive/folders/1x4pqtVGyTba2bg1fkT3sDBFdH3Q5fcAl?usp=drive_link" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "7px 8px",
+          borderRadius: "4px",
+          color: "rgba(251,248,240,0.55)",
+          fontFamily: "var(--font-dm-sans)",
+          fontSize: "14px",
+          fontWeight: 400,
+          transition: `background-color var(--duration-micro) var(--ease), color var(--duration-micro) var(--ease)`,
+          cursor: "pointer",
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(251,248,240,0.05)";
+          (e.currentTarget as HTMLDivElement).style.color = "rgba(251,248,240,0.75)";
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent";
+          (e.currentTarget as HTMLDivElement).style.color = "rgba(251,248,240,0.55)";
+        }}
+        >
+          <span style={{ flexShrink: 0, display: "flex" }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 2h5l3 3v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" />
+              <polyline points="7 2 7 5 10 5" />
+            </svg>
+          </span>
+          Documents ↗
+        </div>
+      </a>
     </aside>
   );
 }
