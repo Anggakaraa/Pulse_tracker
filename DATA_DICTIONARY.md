@@ -48,8 +48,6 @@
 | `unit` | text | NOT NULL | The canonical unit for the metric (e.g. `"mg/dL"` for LDL, `"U/L"` for ALT). Must match what `METRIC_CATALOG` expects for scoring to work. |
 | `original_value` | numeric | nullable | Pre-conversion value if the lab reported in different units (e.g. mmol/L when canonical is mg/dL). |
 | `original_unit` | text | nullable | Pre-conversion unit string. |
-| `original_value` | numeric | nullable | Pre-conversion value if the source used different units |
-| `original_unit` | text | nullable | Pre-conversion unit string |
 | `lab_range_low` | numeric | nullable | Lower bound of lab's reference range for this reading |
 | `lab_range_high` | numeric | nullable | Upper bound of lab's reference range |
 | `optimal_range_low` | numeric | nullable | Lower bound of optimal range. Reserved — not currently used in queries. |
@@ -66,6 +64,106 @@
 - Human keys: `ldl_c`, `apob`, `hba1c`, `homa_ir`, `vo2_max`, `whr`, etc. Full list in `lib/metrics.ts`.
 - Putih keys: `alb`, `alt`, `wbc`, `hgb`, `weight_kg`, etc. Full list in `lib/putih-metrics.ts`.
 - Keys must never be mixed — a reading's subject is derived from its parent test's `subject` column.
+
+---
+
+## Canonical unit reference
+
+> This is the source of truth for what unit to store per metric key.
+> If a lab reports in a different unit, **convert to canonical before storing**.
+> Preserve the original in `original_value` / `original_unit`.
+
+### Cardiovascular
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `ldl_c` | mg/dL | |
+| `hdl_c` | mg/dL | |
+| `total_cholesterol` | mg/dL | |
+| `non_hdl_cholesterol` | mg/dL | |
+| `triglycerides` | mg/dL | |
+| `apob` | mg/dL | |
+| `lp_a` | mg/dL | |
+| `tg_hdl_ratio` | — | Unitless ratio |
+| `apob_apoa1_ratio` | — | Unitless ratio |
+| `systolic_bp` | mmHg | |
+| `diastolic_bp` | mmHg | |
+
+### Metabolic
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `fasting_glucose` | mg/dL | |
+| `hba1c` | % | |
+| `fasting_insulin` | μIU/mL | |
+| `homa_ir` | — | Computed, unitless |
+| `tyg_index` | — | Computed, unitless |
+| `uric_acid` | mg/dL | |
+
+### Inflammation
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `hs_crp` | mg/L | |
+| `homocysteine` | μmol/L | |
+| `ferritin` | μg/L | |
+| `esr` | mm/hr | |
+
+### Hormonal
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `testosterone_total` | nmol/L | |
+| `testosterone_free` | nmol/L | |
+| `shbg` | nmol/L | |
+| `cortisol` | nmol/L | |
+| `dhea_s` | μmol/L | |
+| `tsh` | uIU/mL | |
+| `psa_total` | ng/mL | |
+
+### Nutritional
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `vitamin_d` | nmol/L | |
+| `folate` | nmol/L | |
+| `serum_iron` | μmol/L | |
+| `transferrin_saturation` | % | |
+| `magnesium` | mmol/L | |
+| `zinc` | μmol/L | |
+
+### Blood & Organ
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `rbc` | 10¹²/L | |
+| `haemoglobin` | g/dL | |
+| `haematocrit` | % | |
+| `mcv` | fL | |
+| `mch` | pg | |
+| `mchc` | g/dL | |
+| `rdw_cv` | % | |
+| `wbc` | 10⁹/L | |
+| `platelets` | 10⁹/L | |
+| `ast` | U/L | |
+| `alt` | U/L | |
+| `ggt` | U/L | |
+| `alp` | U/L | |
+| `bilirubin_total` | mg/dL | |
+| `bilirubin_direct` | mg/dL | |
+| `bilirubin_indirect` | mg/dL | |
+| `creatinine` | mg/dL | |
+| `egfr` | mL/min/1.73m² | |
+| `urea` | mg/dL | |
+
+### Vitals & Fitness
+| Metric key | Canonical unit | Notes |
+|---|---|---|
+| `heart_rate` | bpm | |
+| `weight_kg` | kg | |
+| `height_cm` | cm | |
+| `whr` | — | Unitless ratio |
+| `body_fat_pct` | % | |
+| `visceral_fat` | rating | Tanita 1–12 scale |
+| `muscle_mass_kg` | kg | |
+| `vo2_max` | ml/min/kg | |
+| `at_hr` | bpm | |
+| `max_hr` | bpm | |
+| `hr_recovery_1min` | bpm | |
 
 ---
 
