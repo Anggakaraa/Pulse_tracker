@@ -192,6 +192,9 @@ export default function NewExperimentPage() {
     setSaving(true);
     setError(null);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError("Not authenticated"); setSaving(false); return; }
+
     // Insert experiment
     const { data: exp, error: expErr } = await supabase
       .from("experiments")
@@ -201,6 +204,7 @@ export default function NewExperimentPage() {
         start_date: startDate,
         end_date: endDate || null,
         status: "active",
+        user_id: user.id,
       })
       .select("id")
       .single();

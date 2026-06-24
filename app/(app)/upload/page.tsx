@@ -1079,10 +1079,12 @@ export default function UploadPage() {
                 setSaving(true);
                 setSaveError(null);
                 try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) throw new Error("Not authenticated");
                   // 1. Insert test
                   const { data: testData, error: testErr } = await supabase
                     .from("tests")
-                    .insert({ date, lab_name: labName || null, notes: notes || null })
+                    .insert({ date, lab_name: labName || null, notes: notes || null, subject: "human", user_id: user.id })
                     .select("id")
                     .single();
                   if (testErr || !testData) throw new Error(testErr?.message ?? "Failed to create test");
