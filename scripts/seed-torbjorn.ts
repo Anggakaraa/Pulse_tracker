@@ -7,14 +7,8 @@ const supabase = createClient(
 
 const USER_ID = "c5f2a905-bdd5-4f96-a07b-ca5f4ec0b8b3";
 
-// Unit conversions used:
-// mg/dL cholesterol/LDL/HDL → mmol/L: × 0.02586
-// mg/dL triglycerides → mmol/L: × 0.01129
-// mg/dL glucose → mmol/L: × 0.05551
-// mg/dL urea → mmol/L: ÷ 6.006
-// mg/dL creatinine → µmol/L: × 88.4
-// mg/dL uric acid → µmol/L: × 59.48
-// mg/dL bilirubin → µmol/L: × 17.1
+// Values stored in original lab units (mg/dL, U/L, g/dL etc.) — no conversion applied.
+// Unit field must always match the value exactly as reported by the lab.
 
 async function seed() {
 

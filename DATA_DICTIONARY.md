@@ -44,8 +44,8 @@
 | `id` | uuid | PK | Auto-generated |
 | `test_id` | uuid | FK → `tests.id` ON DELETE CASCADE | Parent test |
 | `metric_key` | text | NOT NULL | Snake_case identifier. Human keys defined in `lib/metrics.ts` METRIC_CATALOG. Putih keys defined in `lib/putih-metrics.ts` PUTIH_METRIC_MAP. |
-| `value` | numeric | NOT NULL | Always stored in canonical SI units |
-| `unit` | text | NOT NULL | Display unit string (e.g. `"mmol/L"`, `"g/L"`) |
+| `value` | numeric | NOT NULL | Stored in the original units as reported by the lab — no conversion is applied |
+| `unit` | text | NOT NULL | The unit as reported by the lab (e.g. `"mg/dL"`, `"U/L"`, `"g/dL"`). Must be stored alongside value so the display is unambiguous. |
 | `original_value` | numeric | nullable | Pre-conversion value if the source used different units |
 | `original_unit` | text | nullable | Pre-conversion unit string |
 | `lab_range_low` | numeric | nullable | Lower bound of lab's reference range for this reading |
