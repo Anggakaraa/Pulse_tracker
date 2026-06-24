@@ -1,25 +1,31 @@
 "use client";
+import { colors } from "@/lib/tokens";
 
-export default function PrintShell({ children }: { children: React.ReactNode }) {
+interface Props {
+  title: string;
+  children: React.ReactNode;
+}
+
+export default function PrintShell({ title, children }: Props) {
   return (
     <>
       <div className="no-print" style={{
         padding: "16px 24px",
-        borderBottom: "1px solid #EAE3D3",
+        borderBottom: `1px solid ${colors.border}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#FBF8F0",
+        backgroundColor: colors.background,
       }}>
-        <span style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", color: "#8A8178" }}>
-          Health Record — Progression
+        <span style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", color: colors.inkMuted }}>
+          {title}
         </span>
         <button
           onClick={() => window.print()}
           style={{
             padding: "8px 20px",
-            backgroundColor: "#2A2520",
-            color: "#FBF8F0",
+            backgroundColor: colors.ink,
+            color: colors.background,
             border: "none",
             borderRadius: "4px",
             fontFamily: "var(--font-outfit)",

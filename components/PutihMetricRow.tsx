@@ -2,10 +2,9 @@
 import { useState } from "react";
 import { colors } from "@/lib/tokens";
 import { getPutihRangeStatus } from "@/lib/putih-metrics";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import TrendChart from "@/components/TrendChart";
 
 interface Props {
-  metricKey: string;
   name: string;
   value: number;
   unit: string;
@@ -18,7 +17,9 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
   const [expanded, setExpanded] = useState(false);
   const status = getPutihRangeStatus(value, rangeLow, rangeHigh);
 
-  const dotColor = status === "normal" ? "#4A8C62" : "#A03828";
+  const dotColor = status === "normal" ? colors.badge.optimal : colors.badge.act;
+  const valueColor = status === "normal" ? colors.ink : colors.badge.act;
+
   const rangeLabel = rangeLow !== null && rangeHigh !== null
     ? `${rangeLow}–${rangeHigh} ${unit}`
     : rangeHigh !== null ? `< ${rangeHigh} ${unit}`
@@ -37,7 +38,6 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
           gap: "12px",
         }}
       >
-        {/* Range indicator dot */}
         <span style={{
           width: "6px",
           height: "6px",
@@ -46,7 +46,6 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
           flexShrink: 0,
         }} />
 
-        {/* Name */}
         <span style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "14px",
@@ -56,18 +55,16 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
           {name}
         </span>
 
-        {/* Value */}
         <span style={{
           fontFamily: "var(--font-outfit)",
           fontSize: "16px",
           fontWeight: 600,
-          color: status === "normal" ? colors.ink : "#A03828",
+          color: valueColor,
           marginRight: "4px",
         }}>
           {value}
         </span>
 
-        {/* Unit */}
         <span style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "12px",
@@ -77,7 +74,6 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
           {unit}
         </span>
 
-        {/* Range */}
         <span style={{
           fontFamily: "var(--font-dm-sans)",
           fontSize: "12px",
@@ -88,7 +84,6 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
           {rangeLabel}
         </span>
 
-        {/* Status label */}
         {status !== "normal" && (
           <span style={{
             fontFamily: "var(--font-outfit)",
@@ -96,8 +91,8 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
             fontWeight: 600,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            color: "#A03828",
-            borderLeft: "3px solid #A03828",
+            color: colors.badge.act,
+            borderLeft: `3px solid ${colors.badge.act}`,
             borderRadius: "0 4px 4px 0",
             padding: "2px 8px",
             marginLeft: "8px",
@@ -107,33 +102,16 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
         )}
       </div>
 
-      {/* Trend chart — only shown when expanded and history exists */}
       {expanded && history.length > 1 && (
-        <div style={{ padding: "0 20px 20px 20px" }}>
-          <ResponsiveContainer width="100%" height={120}>
-            <LineChart data={history} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <XAxis
-                dataKey="date"
-                tickFormatter={d => new Date(d + "T00:00:00").toLocaleDateString("en-GB", { month: "short", year: "2-digit" })}
-                tick={{ fontFamily: "var(--font-dm-sans)", fontSize: 11, fill: colors.inkMuted }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis hide domain={["auto", "auto"]} />
-              <Tooltip
-                contentStyle={{ fontFamily: "var(--font-dm-sans)", fontSize: 12, border: `1px solid ${colors.border}`, borderRadius: "4px", backgroundColor: colors.surface }}
-                formatter={(v) => [`${v} ${unit}`, name]}
-                labelFormatter={d => new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              />
-              {rangeHigh !== null && (
-                <ReferenceLine y={rangeHigh} stroke="#A03828" strokeDasharray="3 3" strokeWidth={1} />
-              )}
-              {rangeLow !== null && rangeLow > 0 && (
-                <ReferenceLine y={rangeLow} stroke="#A03828" strokeDasharray="3 3" strokeWidth={1} />
-              )}
-              <Line type="monotone" dataKey="value" stroke={colors.ink} strokeWidth={1.5} dot={{ r: 3, fill: colors.ink }} activeDot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
+        <div style={{ padding: "0 20px 16px 20px" }}>
+          <TrendChart
+            data={history}
+            lineColor={colors.ink}
+            unit={unit}
+            labLow={rangeLow ?? undefined}
+            labHigh={rangeHigh ?? undefined}
+            height={140}
+          />
         </div>
       )}
     </div>

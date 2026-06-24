@@ -1,7 +1,7 @@
 import { getHumanProgressionMatrix, formatTestDate } from "@/lib/queries";
 import { METRIC_CATALOG } from "@/lib/metrics";
 import type { StatusBadge } from "@/lib/tokens";
-import PrintShell from "./PrintShell";
+import PrintShell from "@/components/PrintShell";
 
 const CATEGORY_ORDER = ["metabolic", "cardiovascular", "inflammation", "hormonal", "vitals", "blood", "nutritional"] as const;
 const CATEGORY_LABELS: Record<string, string> = {
@@ -38,7 +38,7 @@ export default async function HumanPrintPage() {
         }
       `}</style>
 
-      <PrintShell>
+      <PrintShell title="Health Record — Progression">
         <div style={{ padding: "24px", backgroundColor: "#fff" }}>
           {/* Header */}
           <div style={{ marginBottom: "24px" }}>

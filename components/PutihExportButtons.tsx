@@ -1,5 +1,5 @@
 "use client";
-import { colors } from "@/lib/tokens";
+import ExportButtons from "@/components/ExportButtons";
 import { PUTIH_METRICS, getPutihRangeStatus } from "@/lib/putih-metrics";
 import type { PutihProgressionMatrix } from "@/lib/putih-queries";
 
@@ -77,45 +77,5 @@ export default function PutihExportButtons({ data, formattedDates }: Props) {
     URL.revokeObjectURL(url);
   }
 
-  const btnBase: React.CSSProperties = {
-    padding: "8px 16px",
-    borderRadius: "4px",
-    fontFamily: "var(--font-outfit)",
-    fontSize: "12px",
-    fontWeight: 600,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    cursor: "pointer",
-    textDecoration: "none",
-    display: "inline-block",
-  };
-
-  return (
-    <div style={{ display: "flex", gap: "8px" }}>
-      <a
-        href="/putih/journey/print"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          ...btnBase,
-          backgroundColor: colors.ink,
-          color: colors.background,
-          border: "none",
-        }}
-      >
-        Print / PDF
-      </a>
-      <button
-        onClick={handleDownloadMd}
-        style={{
-          ...btnBase,
-          backgroundColor: "transparent",
-          color: colors.ink,
-          border: `1px solid ${colors.border}`,
-        }}
-      >
-        Download .md
-      </button>
-    </div>
-  );
+  return <ExportButtons printHref="/putih/journey/print" onDownloadMd={handleDownloadMd} />;
 }

@@ -1,5 +1,5 @@
 "use client";
-import { colors } from "@/lib/tokens";
+import ExportButtons from "@/components/ExportButtons";
 import { METRIC_CATALOG } from "@/lib/metrics";
 import type { HumanProgressionMatrix } from "@/lib/queries";
 import type { StatusBadge } from "@/lib/tokens";
@@ -80,35 +80,5 @@ export default function HumanExportButtons({ data, formattedDates }: Props) {
     URL.revokeObjectURL(url);
   }
 
-  const btnBase: React.CSSProperties = {
-    padding: "8px 16px",
-    borderRadius: "4px",
-    fontFamily: "var(--font-outfit)",
-    fontSize: "12px",
-    fontWeight: 600,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    cursor: "pointer",
-    textDecoration: "none",
-    display: "inline-block",
-  };
-
-  return (
-    <div style={{ display: "flex", gap: "8px" }}>
-      <a
-        href="/dashboard/print"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ ...btnBase, backgroundColor: colors.ink, color: colors.background, border: "none" }}
-      >
-        Print / PDF
-      </a>
-      <button
-        onClick={handleDownloadMd}
-        style={{ ...btnBase, backgroundColor: "transparent", color: colors.ink, border: `1px solid ${colors.border}` }}
-      >
-        Download .md
-      </button>
-    </div>
-  );
+  return <ExportButtons printHref="/dashboard/print" onDownloadMd={handleDownloadMd} />;
 }

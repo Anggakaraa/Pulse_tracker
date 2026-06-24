@@ -21,7 +21,8 @@ export interface DataPoint {
 
 interface Props {
   data: DataPoint[];
-  category: CategoryKey;
+  category?: CategoryKey;
+  lineColor?: string;   // overrides category color — use for non-categorised metrics (e.g. Putih)
   unit: string;
   optimalLow?: number;
   optimalHigh?: number;
@@ -60,6 +61,7 @@ function TickDot(props: { cx?: number; cy?: number; fill?: string }) {
 export default function TrendChart({
   data,
   category,
+  lineColor,
   unit,
   optimalLow,
   optimalHigh,
@@ -67,7 +69,7 @@ export default function TrendChart({
   labHigh,
   height = 160,
 }: Props) {
-  const categoryColor = colors.category[category];
+  const categoryColor = lineColor ?? (category ? colors.category[category] : colors.ink);
   const count = data.length;
   const showBands = count >= 3 && (optimalLow !== undefined || optimalHigh !== undefined || labLow !== undefined || labHigh !== undefined);
 
@@ -98,7 +100,7 @@ export default function TrendChart({
               label={{
                 value: `${data[0].value} ${unit}`,
                 position: "top",
-                fontFamily: "DM Sans",
+                fontFamily: "var(--font-dm-sans)",
                 fontSize: 11,
                 fill: colors.ink,
               }}
@@ -141,7 +143,7 @@ export default function TrendChart({
             axisLine={{ stroke: colors.border, strokeWidth: 0.5 }}
             tickLine={false}
             tick={{
-              fontFamily: "DM Sans",
+              fontFamily: "var(--font-dm-sans)",
               fontSize: 10,
               fill: colors.inkMuted,
               fontWeight: 300,
@@ -155,7 +157,7 @@ export default function TrendChart({
             tickLine={false}
             tickCount={4}
             tick={{
-              fontFamily: "DM Sans",
+              fontFamily: "var(--font-dm-sans)",
               fontSize: 10,
               fill: colors.inkMuted,
               fontWeight: 300,

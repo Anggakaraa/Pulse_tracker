@@ -1,6 +1,6 @@
 import { getPutihProgressionMatrix, formatPutihDate } from "@/lib/putih-queries";
 import { PUTIH_METRICS, getPutihRangeStatus } from "@/lib/putih-metrics";
-import PrintShell from "./PrintShell";
+import PrintShell from "@/components/PrintShell";
 
 export default async function PutihPrintPage() {
   const { tests, matrix } = await getPutihProgressionMatrix();
@@ -85,7 +85,7 @@ export default async function PutihPrintPage() {
         }
       `}</style>
 
-      <PrintShell>
+      <PrintShell title="Putih — Health Journey">
         <div style={{ padding: "24px", backgroundColor: "#fff" }}>
           {/* Header */}
           <div style={{ marginBottom: "20px" }}>

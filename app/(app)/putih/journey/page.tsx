@@ -96,7 +96,7 @@ export default async function PutihJourneyPage() {
                 return (
                   <PutihMetricRow
                     key={metric.key}
-                    metricKey={metric.key}
+                    
                     name={metric.name}
                     value={reading.value}
                     unit={metric.unit}
@@ -118,7 +118,7 @@ export default async function PutihJourneyPage() {
               return (
                 <PutihMetricRow
                   key={metric.key}
-                  metricKey={metric.key}
+                  
                   name={metric.name}
                   value={reading.value}
                   unit={metric.unit}
@@ -139,7 +139,7 @@ export default async function PutihJourneyPage() {
               return (
                 <PutihMetricRow
                   key={metric.key}
-                  metricKey={metric.key}
+                  
                   name={metric.name}
                   value={reading.value}
                   unit={metric.unit}
