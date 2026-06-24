@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { colors } from "@/lib/tokens";
 import { getPutihTests, formatPutihDate } from "@/lib/putih-queries";
-import PutihTestRow from "./PutihTestRow";
+import PutihTestRow from "@/components/PutihTestRow";
 
 export default async function PutihTestsPage() {
   const tests = await getPutihTests();

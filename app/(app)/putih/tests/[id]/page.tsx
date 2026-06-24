@@ -124,7 +124,7 @@ export default async function PutihTestDetailPage({ params }: { params: Promise<
                   fontFamily: "var(--font-outfit)",
                   fontSize: "15px",
                   fontWeight: 600,
-                  color: status === "normal" ? colors.ink : "#A03828",
+                  color: status === "normal" ? colors.ink : colors.badge.act,
                 }}>
                   {r.value}
                 </span>
@@ -160,7 +160,7 @@ export default async function PutihTestDetailPage({ params }: { params: Promise<
                   fontWeight: 600,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
-                  color: status === "normal" ? "#4A8C62" : "#A03828",
+                  color: status === "normal" ? colors.badge.optimal : colors.badge.act,
                 }}>
                   {status === "normal" ? "Normal" : status === "high" ? "High" : "Low"}
                 </span>

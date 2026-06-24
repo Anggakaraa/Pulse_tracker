@@ -1,5 +1,3 @@
-"use client";
-
 import { colors } from "@/lib/tokens";
 
 type RowState = "confirmed" | "review" | "unmapped";

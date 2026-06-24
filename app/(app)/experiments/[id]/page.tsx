@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ExperimentTable from "@/components/ExperimentTable";
 import CategoryPill from "@/components/CategoryPill";
-import ExperimentCharts from "./ExperimentCharts";
+import ExperimentCharts from "@/components/ExperimentCharts";
 import ExperimentNotes from "@/components/ExperimentNotes";
 import { colors } from "@/lib/tokens";
 import { getExperimentDetail } from "@/lib/queries";

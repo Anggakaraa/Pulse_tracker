@@ -1,5 +1,3 @@
-"use client";
-
 import { colors } from "@/lib/tokens";
 
 interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {

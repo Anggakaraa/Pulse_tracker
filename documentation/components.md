@@ -545,7 +545,7 @@ Step 4: Save (C-11) — commits to database
 | Direct Supabase writes (mutations) | Token/style-only components |
 | `window`, `document` browser APIs | |
 
-`Button.tsx` and `UploadReviewRow.tsx` currently have `"use client"` unnecessarily — this is a known issue to fix.
+All components have correct `"use client"` placement as of 2026-06-24.
 
 ---
 
@@ -625,22 +625,23 @@ lib/                 ← data fetching (queries.ts), metric catalog (metrics.ts)
 
 A component is route-specific only if it imports from the route's data types and has no conceivable use elsewhere. If in doubt, put it in `/components/`.
 
-Known misplacements to fix:
-- `app/(app)/experiments/[id]/ExperimentCharts.tsx` → move to `components/`
-- `app/(app)/putih/tests/PutihTestRow.tsx` → move to `components/`
-- `app/(app)/dashboard/print/PrintShell.tsx` → consolidate to `components/PrintShell.tsx`
-- `app/(app)/putih/journey/print/PrintShell.tsx` → same
+All components are correctly placed in `components/` as of 2026-06-24. No known misplacements.
 
 ---
 
-### Known technical debt (as of 2026-06-23)
+### Known technical debt
 
-| Issue | File | Fix |
-|---|---|---|
-| `PutihMetricRow` duplicates `MetricRow` + `TrendChart` | `components/PutihMetricRow.tsx` | Refactor to use `TrendChart` internally |
-| Two identical `PrintShell` components | Both print folders | Merge to `components/PrintShell.tsx` with `title` prop |
-| Two parallel export button components | `HumanExportButtons`, `PutihExportButtons` | Merge to `components/ExportButtons.tsx` |
-| `Button.tsx` has unnecessary `"use client"` | `components/Button.tsx` | Remove directive |
-| `UploadReviewRow.tsx` has unnecessary `"use client"` | `components/UploadReviewRow.tsx` | Remove directive |
-| `TrendChart` uses raw `"DM Sans"` string in tick config | `components/TrendChart.tsx` | Replace with `"var(--font-dm-sans)"` |
-| `metricKey` prop in `PutihMetricRow` is declared but never used | `components/PutihMetricRow.tsx` | Remove from interface |
+All items from the 2026-06-23 audit have been resolved as of 2026-06-24:
+
+| Issue | Status |
+|---|---|
+| `PutihMetricRow` duplicated `TrendChart` | ✅ Fixed — now uses `TrendChart` with `lineColor` prop |
+| Two identical `PrintShell` components | ✅ Fixed — merged to `components/PrintShell.tsx` with `title` prop |
+| Two parallel export button components | ✅ Fixed — `ExportButtons.tsx` is the canonical UI; wrappers handle markdown |
+| `Button.tsx` unnecessary `"use client"` | ✅ Fixed — directive removed |
+| `UploadReviewRow.tsx` unnecessary `"use client"` | ✅ Fixed — directive removed |
+| `TrendChart` raw `"DM Sans"` string | ✅ Fixed — replaced with `"var(--font-dm-sans)"` |
+| `metricKey` dead prop in `PutihMetricRow` | ✅ Fixed — removed from interface |
+| `ExperimentCharts` in route folder | ✅ Fixed — moved to `components/ExperimentCharts.tsx` |
+| `PutihTestRow` in route folder | ✅ Fixed — moved to `components/PutihTestRow.tsx` |
+| Hardcoded `#A03828`/`#4A8C62` in Putih test detail | ✅ Fixed — replaced with `colors.badge.act`/`colors.badge.optimal` |
