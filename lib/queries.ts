@@ -106,12 +106,21 @@ export const FITNESS_KEYS = [
  */
 async function fetchAll(): Promise<{ tests: DbTest[]; readings: ReadingWithDate[] }> {
   const supabase = await createSupabaseServerClient();
-  const [{ data: tests }, { data: readings }] = await Promise.all([
-    supabase.from("tests").select("id, date, lab_name, notes").eq("subject", "human").order("date", { ascending: false }),
-    supabase.from("readings").select("id, test_id, metric_key, value, unit, lab_range_low, lab_range_high, attention_state, annotation"),
-  ]);
+  const { data: tests } = await supabase
+    .from("tests")
+    .select("id, date, lab_name, notes")
+    .eq("subject", "human")
+    .order("date", { ascending: false });
 
-  if (!tests || !readings) return { tests: [], readings: [] };
+  if (!tests || tests.length === 0) return { tests: [], readings: [] };
+
+  const testIds = tests.map(t => t.id);
+  const { data: readings } = await supabase
+    .from("readings")
+    .select("id, test_id, metric_key, value, unit, lab_range_low, lab_range_high, attention_state, annotation")
+    .in("test_id", testIds);
+
+  if (!readings) return { tests, readings: [] };
 
   const dateMap = Object.fromEntries(tests.map(t => [t.id, t.date]));
   const readingsWithDate: ReadingWithDate[] = readings
