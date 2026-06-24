@@ -17,6 +17,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Pulse",
   description: "Personal health record",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
