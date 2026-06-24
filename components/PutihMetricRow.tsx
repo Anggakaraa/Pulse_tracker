@@ -57,7 +57,7 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
 
         <span style={{
           fontFamily: "var(--font-outfit)",
-          fontSize: "16px",
+          fontSize: "13px",
           fontWeight: 600,
           color: valueColor,
           marginRight: "4px",
@@ -103,7 +103,7 @@ export default function PutihMetricRow({ name, value, unit, rangeLow, rangeHigh,
       </div>
 
       {expanded && history.length > 1 && (
-        <div style={{ padding: "0 20px 16px 20px" }}>
+        <div style={{ backgroundColor: colors.surface, borderRadius: "0 0 6px 6px", padding: "20px" }}>
           <TrendChart
             data={history}
             lineColor={colors.ink}
