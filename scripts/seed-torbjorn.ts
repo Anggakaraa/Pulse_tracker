@@ -7,8 +7,10 @@ const supabase = createClient(
 
 const USER_ID = "c5f2a905-bdd5-4f96-a07b-ca5f4ec0b8b3";
 
-// Values stored in original lab units (mg/dL, U/L, g/dL etc.) — no conversion applied.
-// Unit field must always match the value exactly as reported by the lab.
+// Values stored in canonical units as defined by METRIC_CATALOG (lib/metrics.ts).
+// These labs reported in mg/dL which matches the platform's canonical units for lipids,
+// glucose, creatinine, uric acid, and bilirubin — no conversion needed.
+// If a lab reports in mmol/L, convert to mg/dL and store original in original_value/original_unit.
 
 async function seed() {
 
