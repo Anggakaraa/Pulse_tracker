@@ -7,7 +7,7 @@ import { colors } from "@/lib/tokens";
 import type { CategoryKey } from "@/lib/tokens";
 import { METRIC_CATALOG as BASE_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, computeStatusBadge } from "@/lib/metrics";
 import type { MetricMeta } from "@/lib/metrics";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type RowState = "confirmed" | "review" | "unmapped";
@@ -1075,6 +1075,7 @@ export default function UploadPage() {
               variant="primary"
               disabled={!date || saving}
               onClick={async () => {
+                const supabase = createSupabaseBrowserClient();
                 setSaving(true);
                 setSaveError(null);
                 try {

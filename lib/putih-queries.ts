@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { createSupabaseServerClient } from "./supabase";
 import { PUTIH_METRIC_MAP } from "./putih-metrics";
 
 export interface PutihTest {
@@ -31,6 +31,7 @@ export interface PutihLatestReading {
 }
 
 export async function getPutihTests(): Promise<PutihTest[]> {
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("tests")
     .select("id, date, lab_name, notes")
@@ -60,6 +61,7 @@ export async function getPutihTests(): Promise<PutihTest[]> {
 }
 
 export async function getPutihTestDetail(id: string): Promise<PutihTestDetail | null> {
+  const supabase = await createSupabaseServerClient();
   const { data: test, error } = await supabase
     .from("tests")
     .select("id, date, lab_name, notes")
@@ -83,6 +85,7 @@ export async function getPutihTestDetail(id: string): Promise<PutihTestDetail | 
 }
 
 export async function getPutihLatestReadings(): Promise<PutihLatestReading[]> {
+  const supabase = await createSupabaseServerClient();
   // Get all putih test IDs ordered by date
   const { data: tests } = await supabase
     .from("tests")
@@ -123,6 +126,7 @@ export async function getPutihLatestReadings(): Promise<PutihLatestReading[]> {
 }
 
 export async function getPutihReadingsHistory(metricKey: string): Promise<{ date: string; value: number }[]> {
+  const supabase = await createSupabaseServerClient();
   const { data: tests } = await supabase
     .from("tests")
     .select("id, date")
@@ -155,6 +159,7 @@ export interface PutihProgressionMatrix {
 }
 
 export async function getPutihProgressionMatrix(): Promise<PutihProgressionMatrix> {
+  const supabase = await createSupabaseServerClient();
   const { data: tests } = await supabase
     .from("tests")
     .select("id, date, lab_name")

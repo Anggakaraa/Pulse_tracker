@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { PUTIH_METRICS } from "@/lib/putih-metrics";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface ReadingRow {
   metric_key: string;
@@ -76,6 +76,7 @@ export default function PutihUploadPage() {
   const validReadings = readings.filter(r => r.metric_key && r.value);
 
   async function handleSave() {
+    const supabase = createSupabaseBrowserClient();
     setSaving(true);
     setError("");
     try {

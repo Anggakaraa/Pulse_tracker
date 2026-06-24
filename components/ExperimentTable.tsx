@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import type { StatusBadge, CategoryKey } from "@/lib/tokens";
 import { formatBandRange } from "@/lib/metrics";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export interface ExperimentMetric {
   key: string;
@@ -57,6 +57,7 @@ export default function ExperimentTable({ experimentId, dates, testIds, columnLa
   const [labels, setLabels] = useState<Record<string, string>>(initialLabels);
 
   const handleLabelBlur = async (testId: string, value: string) => {
+    const supabase = createSupabaseBrowserClient();
     const trimmed = value.slice(0, 20);
     const updated = { ...labels, [testId]: trimmed };
     setLabels(updated);
@@ -67,6 +68,7 @@ export default function ExperimentTable({ experimentId, dates, testIds, columnLa
   };
 
   const handleExclude = async (testId: string) => {
+    const supabase = createSupabaseBrowserClient();
     const updated = [...initialExcluded, testId];
     await supabase
       .from("experiments")

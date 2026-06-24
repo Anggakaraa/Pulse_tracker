@@ -6,7 +6,7 @@ import { colors } from "@/lib/tokens";
 import type { CategoryKey } from "@/lib/tokens";
 import { METRIC_CATALOG, CATEGORY_ORDER, computeStatusBadge } from "@/lib/metrics";
 import type { MetricMeta } from "@/lib/metrics";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,6 +247,7 @@ export default function AddMarkerPanel({ testId }: { testId: string }) {
   const canSave = validRows.length > 0 && !saving;
 
   const handleSave = async () => {
+    const supabase = createSupabaseBrowserClient();
     setSaving(true);
     setError(null);
     try {

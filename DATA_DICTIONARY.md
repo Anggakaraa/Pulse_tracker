@@ -149,3 +149,6 @@ experiments read tests indirectly:
 | 003 | `003_experiment_metrics_target_range.sql` | Adds `target_low`, `target_high` to `experiment_metrics` |
 | 004 | `004_tests_subject.sql` | Adds `subject` to `tests` — separates human and Putih records |
 | 005 | `005_experiments_notes.sql` | Adds `notes` to `experiments` |
+| 006 | `006_tests_user_id.sql` | Adds `user_id` to `tests` — enables per-user isolation |
+| 007 | `007_experiments_user_id.sql` | Adds `user_id` to `experiments` |
+| 008 | `008_rls_policies.sql` | Enables RLS on all tables with access policies |

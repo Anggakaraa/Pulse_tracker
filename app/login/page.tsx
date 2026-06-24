@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { colors } from "@/lib/tokens";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,17 +16,15 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
+    const supabase = createSupabaseBrowserClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (res.ok) {
-      router.push("/dashboard");
-    } else {
-      setError("Incorrect password");
+    if (authError) {
+      setError("Incorrect email or password");
       setLoading(false);
+    } else {
+      router.push("/dashboard");
+      router.refresh();
     }
   }
 
@@ -66,12 +66,12 @@ export default function LoginPage() {
           Welcome back
         </h1>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             autoFocus
             style={{
               width: "100%",
@@ -79,27 +79,44 @@ export default function LoginPage() {
               fontSize: "16px",
               fontFamily: "var(--font-dm-sans)",
               backgroundColor: colors.background,
-              border: `1px solid ${error ? "#A03828" : colors.border}`,
+              border: `1px solid ${colors.border}`,
               borderRadius: "4px",
               color: colors.ink,
               outline: "none",
               boxSizing: "border-box",
-              marginBottom: error ? "8px" : "16px",
+            }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 14px",
+              fontSize: "16px",
+              fontFamily: "var(--font-dm-sans)",
+              backgroundColor: colors.background,
+              border: `1px solid ${error ? colors.badge.act : colors.border}`,
+              borderRadius: "4px",
+              color: colors.ink,
+              outline: "none",
+              boxSizing: "border-box",
             }}
           />
           {error && (
             <p style={{
               fontFamily: "var(--font-dm-sans)",
               fontSize: "14px",
-              color: "#A03828",
-              margin: "0 0 16px 0",
+              color: colors.badge.act,
+              margin: 0,
             }}>
               {error}
             </p>
           )}
           <button
             type="submit"
-            disabled={loading || !password}
+            disabled={loading || !email || !password}
             style={{
               width: "100%",
               padding: "10px",
@@ -112,12 +129,12 @@ export default function LoginPage() {
               color: colors.background,
               border: "none",
               borderRadius: "4px",
-              cursor: loading || !password ? "not-allowed" : "pointer",
-              opacity: loading || !password ? 0.5 : 1,
-              transition: "opacity 150ms",
+              cursor: loading || !email || !password ? "not-allowed" : "pointer",
+              opacity: loading || !email || !password ? 0.5 : 1,
+              marginTop: "4px",
             }}
           >
-            {loading ? "..." : "Enter"}
+            {loading ? "..." : "Sign in"}
           </button>
         </form>
       </div>

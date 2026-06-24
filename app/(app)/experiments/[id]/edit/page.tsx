@@ -7,7 +7,7 @@ import { colors } from "@/lib/tokens";
 import type { CategoryKey } from "@/lib/tokens";
 import { METRIC_CATALOG, CATEGORY_ORDER } from "@/lib/metrics";
 import type { MetricMeta } from "@/lib/metrics";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 const CATEGORY_COLORS = Object.fromEntries(
   Object.entries(colors.category).map(([k, v]) => [k, v])
@@ -139,6 +139,7 @@ export default function EditExperimentPage() {
   // Load existing data
   useEffect(() => {
     async function load() {
+      const supabase = createSupabaseBrowserClient();
       const [{ data: exp }, { data: metrics }] = await Promise.all([
         supabase.from("experiments").select("*").eq("id", id).single(),
         supabase.from("experiment_metrics").select("metric_key, target_low, target_high").eq("experiment_id", id),
@@ -188,6 +189,7 @@ export default function EditExperimentPage() {
 
   const handleSave = async () => {
     if (!canSave) return;
+    const supabase = createSupabaseBrowserClient();
     setSaving(true);
     setError(null);
 

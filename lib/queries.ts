@@ -5,7 +5,7 @@
  * Data is always returned in canonical units (as stored in DB).
  */
 
-import { supabase } from "./supabase";
+import { createSupabaseServerClient } from "./supabase";
 import { METRIC_CATALOG, computeStatusBadge } from "./metrics";
 import type { StatusBadge, CategoryKey } from "./tokens";
 import type { MetricData } from "@/components/MetricList";
@@ -105,6 +105,7 @@ export const FITNESS_KEYS = [
  * Returns readings sorted newest-test-first.
  */
 async function fetchAll(): Promise<{ tests: DbTest[]; readings: ReadingWithDate[] }> {
+  const supabase = await createSupabaseServerClient();
   const [{ data: tests }, { data: readings }] = await Promise.all([
     supabase.from("tests").select("id, date, lab_name, notes").eq("subject", "human").order("date", { ascending: false }),
     supabase.from("readings").select("id, test_id, metric_key, value, unit, lab_range_low, lab_range_high, attention_state, annotation"),
@@ -423,6 +424,7 @@ export interface ActiveExperiment {
  * All active experiments — for the dashboard card.
  */
 export async function getActiveExperiments(): Promise<ActiveExperiment[]> {
+  const supabase = await createSupabaseServerClient();
   const [{ data: experiments }, { data: expMetrics }] = await Promise.all([
     supabase
       .from("experiments")
@@ -568,6 +570,7 @@ export interface ExperimentDetail {
  * All experiments (active + completed) — for the experiments list page.
  */
 export async function getAllExperiments(): Promise<ExperimentListItem[]> {
+  const supabase = await createSupabaseServerClient();
   const [{ data: experiments }, { data: expMetrics }] = await Promise.all([
     supabase
       .from("experiments")
@@ -612,6 +615,7 @@ export async function getAllExperiments(): Promise<ExperimentListItem[]> {
  * Fetches tests that fall within the experiment's date range.
  */
 export async function getExperimentDetail(id: string): Promise<ExperimentDetail | null> {
+  const supabase = await createSupabaseServerClient();
   const [{ data: exp }, { data: expMetrics }] = await Promise.all([
     supabase
       .from("experiments")

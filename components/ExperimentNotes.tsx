@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { colors } from "@/lib/tokens";
 
 interface Props {
@@ -21,6 +21,7 @@ export default function ExperimentNotes({ experimentId, initialNotes }: Props) {
 
   const handleBlur = async () => {
     if (value === (initialNotes ?? "")) return; // no change
+    const supabase = createSupabaseBrowserClient();
     setStatus("saving");
     await supabase
       .from("experiments")
