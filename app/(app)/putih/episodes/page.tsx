@@ -14,6 +14,9 @@ const SEVERITY_COLOR: Record<string, string> = {
   severe: colors.badge.act,
 };
 
+const HEADERS = ["Date", "Trigger", "Symptoms", "Symptoms Description", "Severity", "Action Taken", "Recovery", ""];
+const COLUMNS = "100px 120px 160px 1fr 80px 160px 160px 40px";
+
 export default async function PutihEpisodesPage() {
   const supabase = await createSupabaseServerClient();
   const { data: episodes } = await supabase
@@ -22,7 +25,7 @@ export default async function PutihEpisodesPage() {
     .order("date", { ascending: false });
 
   return (
-    <div style={{ padding: "40px 64px", maxWidth: "960px" }}>
+    <div style={{ padding: "40px 64px", maxWidth: "1200px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
         <div>
@@ -69,21 +72,16 @@ export default async function PutihEpisodesPage() {
           No episodes logged yet.
         </p>
       ) : (
-        <div style={{
-          border: `1px solid ${colors.border}`,
-          borderRadius: "6px",
-          overflow: "hidden",
-        }}>
-          {/* Table header */}
+        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
+          {/* Header row */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: "100px 1fr 1fr 90px 1fr 1fr",
-            gap: "0",
+            gridTemplateColumns: COLUMNS,
             backgroundColor: colors.surface,
             borderBottom: `1px solid ${colors.border}`,
             padding: "10px 16px",
           }}>
-            {["Date", "Trigger", "Symptoms", "Severity", "Action Taken", "Recovery"].map(h => (
+            {HEADERS.map(h => (
               <span key={h} style={{
                 fontFamily: "var(--font-outfit)",
                 fontSize: "11px",
@@ -97,31 +95,33 @@ export default async function PutihEpisodesPage() {
             ))}
           </div>
 
-          {/* Rows */}
+          {/* Data rows */}
           {episodes.map((ep, i) => {
             const symptoms: string[] = Array.isArray(ep.symptoms) ? ep.symptoms : [];
-            const allSymptoms = ep.symptoms_other
-              ? [...symptoms, `Other: ${ep.symptoms_other}`]
-              : symptoms;
+            const allSymptoms = ep.symptoms_other ? [...symptoms, `Other: ${ep.symptoms_other}`] : symptoms;
 
             return (
               <div
                 key={ep.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "100px 1fr 1fr 90px 1fr 1fr",
-                  gap: "0",
+                  gridTemplateColumns: COLUMNS,
                   padding: "14px 16px",
                   borderBottom: i < episodes.length - 1 ? `1px solid ${colors.border}` : "none",
                   alignItems: "start",
                 }}
               >
+                {/* Date */}
                 <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
                   {new Date(ep.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
+
+                {/* Trigger */}
                 <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
                   {ep.suspected_trigger || "—"}
                 </span>
+
+                {/* Symptoms tags */}
                 <div style={{ paddingRight: "12px" }}>
                   {allSymptoms.length === 0 ? (
                     <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>—</span>
@@ -143,6 +143,13 @@ export default async function PutihEpisodesPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Symptoms description */}
+                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
+                  {ep.symptoms_description || "—"}
+                </span>
+
+                {/* Severity */}
                 <span style={{
                   fontFamily: "var(--font-outfit)",
                   fontSize: "11px",
@@ -153,12 +160,28 @@ export default async function PutihEpisodesPage() {
                 }}>
                   {SEVERITY_LABEL[ep.severity] || ep.severity}
                 </span>
+
+                {/* Action taken */}
                 <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
                   {ep.action_taken || "—"}
                 </span>
+
+                {/* Recovery */}
                 <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>
                   {ep.recovery || "—"}
                 </span>
+
+                {/* Edit link */}
+                <Link href={`/putih/episodes/${ep.id}/edit`} style={{ textDecoration: "none" }}>
+                  <span style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "12px",
+                    color: colors.inkMuted,
+                    cursor: "pointer",
+                  }}>
+                    Edit
+                  </span>
+                </Link>
               </div>
             );
           })}

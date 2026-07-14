@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
@@ -107,8 +107,12 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function NewEpisodePage() {
+export default function EditEpisodePage() {
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
+  const [loading, setLoading] = useState(true);
   const [date, setDate] = useState("");
   const [trigger, setTrigger] = useState("");
   const [selectedSymptoms, setSelectedSymptoms] = useState<Set<string>>(new Set());
@@ -120,6 +124,28 @@ export default function NewEpisodePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    async function load() {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("putih_episodes")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !data) { setError("Episode not found."); setLoading(false); return; }
+      setDate(data.date);
+      setTrigger(data.suspected_trigger || "");
+      setSelectedSymptoms(new Set(Array.isArray(data.symptoms) ? data.symptoms : []));
+      setSymptomsOther(data.symptoms_other || "");
+      setSymptomsDescription(data.symptoms_description || "");
+      setSeverity(data.severity);
+      setActionTaken(data.action_taken || "");
+      setRecovery(data.recovery || "");
+      setLoading(false);
+    }
+    load();
+  }, [id]);
+
   function toggleSymptom(s: string) {
     setSelectedSymptoms(prev => {
       const next = new Set(prev);
@@ -130,31 +156,38 @@ export default function NewEpisodePage() {
   }
 
   async function handleSave() {
-    if (!date || !severity) {
-      setError("Date and severity are required.");
-      return;
-    }
+    if (!date || !severity) { setError("Date and severity are required."); return; }
     setSaving(true);
     setError("");
     const supabase = createSupabaseBrowserClient();
-    const { error: err } = await supabase.from("putih_episodes").insert({
-      date,
-      suspected_trigger: trigger || null,
-      symptoms: Array.from(selectedSymptoms),
-      symptoms_other: symptomsOther || null,
-      symptoms_description: symptomsDescription || null,
-      severity,
-      action_taken: actionTaken || null,
-      recovery: recovery || null,
-    });
+    const { error: err } = await supabase
+      .from("putih_episodes")
+      .update({
+        date,
+        suspected_trigger: trigger || null,
+        symptoms: Array.from(selectedSymptoms),
+        symptoms_other: symptomsOther || null,
+        symptoms_description: symptomsDescription || null,
+        severity,
+        action_taken: actionTaken || null,
+        recovery: recovery || null,
+      })
+      .eq("id", id);
     setSaving(false);
     if (err) { setError(err.message); return; }
     router.push("/putih/episodes");
   }
 
+  if (loading) {
+    return (
+      <div style={{ padding: "40px 64px", fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "40px 64px", maxWidth: "720px" }}>
-      {/* Header */}
       <p style={{
         fontFamily: "var(--font-outfit)",
         fontSize: "13px",
@@ -174,18 +207,16 @@ export default function NewEpisodePage() {
         letterSpacing: "-0.01em",
         marginBottom: "32px",
       }}>
-        Log a new episode
+        Edit episode
       </h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-        {/* Date */}
         <div>
           <Label>Date</Label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle()} />
         </div>
 
-        {/* Suspected Trigger */}
         <div>
           <Label>Suspected trigger</Label>
           <input
@@ -197,18 +228,11 @@ export default function NewEpisodePage() {
           />
         </div>
 
-        {/* Symptoms */}
         <div>
           <Label>Symptoms</Label>
-          <div style={{
-            border: `1px solid ${colors.border}`,
-            borderRadius: "6px",
-            overflow: "hidden",
-          }}>
+          <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
             {SYMPTOM_GROUPS.map((group, gi) => (
-              <div key={group.label} style={{
-                borderBottom: gi < SYMPTOM_GROUPS.length - 1 ? `1px solid ${colors.border}` : "none",
-              }}>
+              <div key={group.label} style={{ borderBottom: gi < SYMPTOM_GROUPS.length - 1 ? `1px solid ${colors.border}` : "none" }}>
                 <div style={{
                   padding: "8px 16px",
                   backgroundColor: colors.surface,
@@ -221,12 +245,7 @@ export default function NewEpisodePage() {
                 }}>
                   {group.label}
                 </div>
-                <div style={{
-                  padding: "12px 16px",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "8px",
-                }}>
+                <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
                   {group.items.map(item => {
                     const checked = selectedSymptoms.has(item);
                     return (
@@ -253,17 +272,8 @@ export default function NewEpisodePage() {
                 </div>
               </div>
             ))}
-
-            {/* Other */}
             <div style={{ borderTop: `1px solid ${colors.border}`, padding: "12px 16px" }}>
-              <label style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "14px",
-                color: colors.inkMuted,
-              }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>
                 <span style={{
                   fontFamily: "var(--font-outfit)",
                   fontSize: "11px",
@@ -287,7 +297,6 @@ export default function NewEpisodePage() {
           </div>
         </div>
 
-        {/* Symptoms description */}
         <div>
           <Label>Symptoms description</Label>
           <textarea
@@ -299,7 +308,6 @@ export default function NewEpisodePage() {
           />
         </div>
 
-        {/* Severity */}
         <div>
           <Label>Severity</Label>
           <div style={{ display: "flex", gap: "8px" }}>
@@ -328,7 +336,6 @@ export default function NewEpisodePage() {
           </div>
         </div>
 
-        {/* Action Taken */}
         <div>
           <Label>Action taken</Label>
           <textarea
@@ -340,7 +347,6 @@ export default function NewEpisodePage() {
           />
         </div>
 
-        {/* Recovery */}
         <div>
           <Label>Recovery</Label>
           <textarea
@@ -358,7 +364,6 @@ export default function NewEpisodePage() {
           </p>
         )}
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: "8px", paddingTop: "8px" }}>
           <button
             onClick={handleSave}
@@ -375,7 +380,7 @@ export default function NewEpisodePage() {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : "Save episode"}
+            {saving ? "Saving…" : "Save changes"}
           </button>
           <button
             onClick={() => router.push("/putih/episodes")}
