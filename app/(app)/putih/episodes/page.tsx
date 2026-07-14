@@ -14,9 +14,6 @@ const SEVERITY_COLOR: Record<string, string> = {
   severe: colors.badge.act,
 };
 
-const HEADERS = ["Date", "Trigger", "Symptoms", "Symptoms Description", "Severity", "Action Taken", "Recovery", ""];
-const COLUMNS = "100px 120px 160px 1fr 80px 160px 160px 40px";
-
 export default async function PutihEpisodesPage() {
   const supabase = await createSupabaseServerClient();
   const { data: episodes } = await supabase
@@ -25,7 +22,7 @@ export default async function PutihEpisodesPage() {
     .order("date", { ascending: false });
 
   return (
-    <div style={{ padding: "40px 64px", maxWidth: "1200px" }}>
+    <div style={{ padding: "40px 64px", maxWidth: "960px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px" }}>
         <div>
@@ -66,7 +63,6 @@ export default async function PutihEpisodesPage() {
         </Link>
       </div>
 
-      {/* Table */}
       {!episodes || episodes.length === 0 ? (
         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>
           No episodes logged yet.
@@ -76,12 +72,12 @@ export default async function PutihEpisodesPage() {
           {/* Header row */}
           <div style={{
             display: "grid",
-            gridTemplateColumns: COLUMNS,
+            gridTemplateColumns: "100px 1fr 1fr 80px 32px",
             backgroundColor: colors.surface,
             borderBottom: `1px solid ${colors.border}`,
             padding: "10px 16px",
           }}>
-            {HEADERS.map(h => (
+            {["Date", "Trigger", "Symptoms", "Severity", ""].map(h => (
               <span key={h} style={{
                 fontFamily: "var(--font-outfit)",
                 fontSize: "11px",
@@ -95,94 +91,75 @@ export default async function PutihEpisodesPage() {
             ))}
           </div>
 
-          {/* Data rows */}
+          {/* Rows */}
           {episodes.map((ep, i) => {
             const symptoms: string[] = Array.isArray(ep.symptoms) ? ep.symptoms : [];
             const allSymptoms = ep.symptoms_other ? [...symptoms, `Other: ${ep.symptoms_other}`] : symptoms;
 
             return (
-              <div
+              <Link
                 key={ep.id}
+                href={`/putih/episodes/${ep.id}`}
+                className="episode-row"
                 style={{
+                  textDecoration: "none",
+                  color: "inherit",
                   display: "grid",
-                  gridTemplateColumns: COLUMNS,
+                  gridTemplateColumns: "100px 1fr 1fr 80px 32px",
                   padding: "14px 16px",
                   borderBottom: i < episodes.length - 1 ? `1px solid ${colors.border}` : "none",
-                  alignItems: "start",
+                  alignItems: "center",
                 }}
               >
-                {/* Date */}
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-                  {new Date(ep.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-
-                {/* Trigger */}
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
-                  {ep.suspected_trigger || "—"}
-                </span>
-
-                {/* Symptoms tags */}
-                <div style={{ paddingRight: "12px" }}>
-                  {allSymptoms.length === 0 ? (
-                    <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>—</span>
-                  ) : (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                      {allSymptoms.map((s, si) => (
-                        <span key={si} style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "11px",
-                          color: colors.ink,
-                          backgroundColor: colors.surface,
-                          border: `1px solid ${colors.border}`,
-                          borderRadius: "4px",
-                          padding: "2px 6px",
-                        }}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Symptoms description */}
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
-                  {ep.symptoms_description || "—"}
-                </span>
-
-                {/* Severity */}
-                <span style={{
-                  fontFamily: "var(--font-outfit)",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: SEVERITY_COLOR[ep.severity] || colors.ink,
-                }}>
-                  {SEVERITY_LABEL[ep.severity] || ep.severity}
-                </span>
-
-                {/* Action taken */}
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "12px" }}>
-                  {ep.action_taken || "—"}
-                </span>
-
-                {/* Recovery */}
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>
-                  {ep.recovery || "—"}
-                </span>
-
-                {/* Edit link */}
-                <Link href={`/putih/episodes/${ep.id}/edit`} style={{ textDecoration: "none" }}>
-                  <span style={{
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "12px",
-                    color: colors.inkMuted,
-                    cursor: "pointer",
-                  }}>
-                    Edit
+                <div style={{ display: "contents" }}>
+                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+                    {new Date(ep.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
-                </Link>
-              </div>
+
+                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink, paddingRight: "16px" }}>
+                    {ep.suspected_trigger || "—"}
+                  </span>
+
+                  <div style={{ paddingRight: "16px" }}>
+                    {allSymptoms.length === 0 ? (
+                      <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>—</span>
+                    ) : (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                        {allSymptoms.map((s, si) => (
+                          <span key={si} style={{
+                            fontFamily: "var(--font-dm-sans)",
+                            fontSize: "11px",
+                            color: colors.ink,
+                            backgroundColor: colors.surface,
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: "4px",
+                            padding: "2px 6px",
+                          }}>
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <span style={{
+                    fontFamily: "var(--font-outfit)",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: SEVERITY_COLOR[ep.severity] || colors.ink,
+                  }}>
+                    {SEVERITY_LABEL[ep.severity] || ep.severity}
+                  </span>
+
+                  <span style={{ color: colors.inkMuted, display: "flex", alignItems: "center" }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 3l4 4-4 4" />
+                    </svg>
+                  </span>
+                </div>
+              </Link>
             );
           })}
         </div>

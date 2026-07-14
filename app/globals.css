@@ -139,3 +139,7 @@ body {
     border-color: #d0c8b8 !important;
   }
 }
+
+.episode-row:hover {
+  background-color: #F4EFE3;
+}
