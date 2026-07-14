@@ -225,6 +225,18 @@ export default function Sidebar() {
         }
         active={pathname.startsWith("/putih/tests")}
       />
+      <NavItem
+        label="Episodes"
+        href="/putih/episodes"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="4.5" />
+            <line x1="6" y1="4" x2="6" y2="6.5" />
+            <circle cx="6" cy="8" r="0.5" fill="currentColor" stroke="none" />
+          </svg>
+        }
+        active={pathname.startsWith("/putih/episodes")}
+      />
       <a href="https://drive.google.com/drive/folders/1x4pqtVGyTba2bg1fkT3sDBFdH3Q5fcAl?usp=drive_link" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
         <div style={{
           display: "flex",
