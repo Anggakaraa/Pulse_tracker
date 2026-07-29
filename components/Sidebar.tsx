@@ -201,6 +201,35 @@ export default function Sidebar() {
 
       <Divider />
 
+      {/* Glucomove */}
+      <SectionLabel>Glucomove</SectionLabel>
+      <NavItem
+        label="Today"
+        href="/glucomove"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="6" cy="6" r="4.5" />
+            <path d="M6 3.5v2.5l1.5 1.5" />
+          </svg>
+        }
+        active={pathname === "/glucomove"}
+      />
+      <NavItem
+        label="All days"
+        href="/glucomove/days"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1.5" y="2" width="9" height="9" rx="1" />
+            <line x1="4" y1="1" x2="4" y2="3" />
+            <line x1="8" y1="1" x2="8" y2="3" />
+            <line x1="1.5" y1="5" x2="10.5" y2="5" />
+          </svg>
+        }
+        active={pathname.startsWith("/glucomove/days")}
+      />
+
+      <Divider />
+
       {/* Putih */}
       <SectionLabel>Putih</SectionLabel>
       <NavItem
