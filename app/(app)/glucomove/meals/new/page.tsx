@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -57,7 +57,7 @@ function Toggle({ label, desc, checked, onChange }: { label: string; desc?: stri
   );
 }
 
-export default function NewMealPage() {
+function NewMealPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dayId = searchParams.get("day") ?? "";
@@ -236,4 +236,8 @@ export default function NewMealPage() {
       </div>
     </div>
   );
+}
+
+export default function NewMealPage() {
+  return <Suspense><NewMealPageInner /></Suspense>;
 }

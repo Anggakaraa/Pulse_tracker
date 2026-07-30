@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
@@ -23,7 +23,7 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   );
 }
 
-export default function NewDayRecordPage() {
+function NewDayRecordPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultDate = searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
@@ -128,4 +128,8 @@ export default function NewDayRecordPage() {
       </div>
     </div>
   );
+}
+
+export default function NewDayRecordPage() {
+  return <Suspense><NewDayRecordPageInner /></Suspense>;
 }
