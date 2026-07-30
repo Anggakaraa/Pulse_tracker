@@ -35,14 +35,18 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
   const [saving, setSaving] = useState(false);
   const [dismissing, setDismissing] = useState(false);
   const [error, setError] = useState("");
-  const [mealPickerOpen, setMealPickerOpen] = useState(false);
-  const [availableMeals, setAvailableMeals] = useState<{ id: string; name: string }[]>([]);
-  const [selectedMealId, setSelectedMealId] = useState("");
-  const [isBaseline, setIsBaseline] = useState(true);
 
   const parsed = draft.parsed_data as Record<string, unknown>;
   const type = draft.type as string;
   const sentAt = new Date(draft.sent_at as string);
+
+  // Resolve timestamp: use parsed time if available, otherwise fall back to sentAt
+  function resolveTimestamp(dateStr: string, timeStr?: string | null): string {
+    if (timeStr) {
+      return new Date(`${dateStr}T${timeStr}:00+07:00`).toISOString();
+    }
+    return sentAt.toISOString();
+  }
 
   // Editable fields for meals
   const [mealName, setMealName] = useState(String(parsed.name ?? ""));
@@ -64,6 +68,8 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
 
   // Editable glucose reading
   const [glucoseMmol, setGlucoseMmol] = useState(String(parsed.glucose_mmol ?? ""));
+  const [readingTime, setReadingTime] = useState(String(parsed.time ?? ""));
+  const [mealTime, setMealTime] = useState(String(parsed.time ?? ""));
 
   async function dismiss() {
     setDismissing(true);
@@ -97,23 +103,12 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Not authenticated."); setSaving(false); return; }
 
-    // Find day record for this date
-    const { data: dayRecord } = await supabase
-      .from("glucomove_day_records")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("date", draft.date as string)
-      .single();
-
-    if (!dayRecord) {
-      setError("No day record found for this date. Approve the day record draft first.");
-      setSaving(false); return;
-    }
+    const ts = resolveTimestamp(draft.date as string, mealTime || null);
 
     const { error: err } = await supabase.from("glucomove_meals").insert({
-      day_record_id: dayRecord.id,
+      day_record_id: null,
       user_id: user.id,
-      meal_start_time: sentAt.toISOString(),
+      meal_start_time: ts,
       meal_type: mealType,
       name: mealName,
       description: mealDesc || mealName,
@@ -132,32 +127,20 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
     router.refresh();
   }
 
-  async function openMealPicker() {
-    const supabase = createSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: meals } = await supabase
-      .from("glucomove_meals")
-      .select("id, name, day_record_id, glucomove_day_records!inner(date, user_id)")
-      .eq("glucomove_day_records.user_id", user.id)
-      .eq("glucomove_day_records.date", draft.date as string);
-
-    setAvailableMeals((meals ?? []).map(m => ({ id: m.id, name: m.name })));
-    setSelectedMealId((meals ?? [])[0]?.id ?? "");
-    setMealPickerOpen(true);
-  }
-
   async function approveGlucoseReading() {
-    if (!selectedMealId) { setError("Select a meal to assign this reading to."); return; }
     setSaving(true); setError("");
     const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError("Not authenticated."); setSaving(false); return; }
+
+    const ts = resolveTimestamp(draft.date as string, readingTime || null);
 
     const { error: err } = await supabase.from("glucomove_readings").insert({
-      meal_id: selectedMealId,
-      timestamp: sentAt.toISOString(),
+      user_id: user.id,
+      meal_id: null,
+      timestamp: ts,
       glucose_mmol: parseFloat(glucoseMmol),
-      is_baseline: isBaseline,
+      is_baseline: false,
     });
 
     if (err) { setError(err.message); setSaving(false); return; }
@@ -288,6 +271,9 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
                 )}
               </div>
             )}
+            <Field label="Meal time (HH:MM, 24h)">
+              <input type="text" placeholder={sentAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} value={mealTime} onChange={e => setMealTime(e.target.value)} style={inputStyle("100px")} />
+            </Field>
             {error && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.act }}>{error}</p>}
             <button onClick={approveMeal} disabled={saving} style={approveBtn(saving)}>
               {saving ? "Saving…" : "Approve — create meal"}
@@ -305,36 +291,16 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
               }
               {!!parsed.is_fasting && <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>Fasting</span>}
             </div>
-
-            {!mealPickerOpen ? (
-              <button onClick={openMealPicker} style={approveBtn(false)}>
-                Assign to meal and approve →
-              </button>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {availableMeals.length === 0 ? (
-                  <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
-                    No meals found for this date. Approve meal drafts first.
-                  </p>
-                ) : (
-                  <>
-                    <Field label="Assign to meal">
-                      <select value={selectedMealId} onChange={e => setSelectedMealId(e.target.value)} style={{ ...inputStyle(), appearance: "none" as const }}>
-                        {availableMeals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                    </Field>
-                    <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
-                      <input type="checkbox" checked={isBaseline} onChange={e => setIsBaseline(e.target.checked)} style={{ accentColor: colors.ink }} />
-                      Mark as baseline (pre-meal reading)
-                    </label>
-                    <button onClick={approveGlucoseReading} disabled={saving} style={approveBtn(saving)}>
-                      {saving ? "Saving…" : "Approve — add reading"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+            <Field label="Reading time (HH:MM, 24h)">
+              <input type="text" placeholder={sentAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} value={readingTime} onChange={e => setReadingTime(e.target.value)} style={inputStyle("100px")} />
+            </Field>
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: colors.inkMuted }}>
+              Leave blank to use message time. The system auto-associates this reading with meals by time.
+            </p>
             {error && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.act }}>{error}</p>}
+            <button onClick={approveGlucoseReading} disabled={saving} style={approveBtn(saving)}>
+              {saving ? "Saving…" : "Approve — save reading"}
+            </button>
           </div>
         )}
 

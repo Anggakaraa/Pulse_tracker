@@ -40,6 +40,7 @@ export default function ReadingPanel({
     if (isNaN(val) || val <= 0) { setError("Enter a valid glucose value."); return; }
     setSaving(true); setError("");
     const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (isBaseline) {
       await supabase.from("glucomove_readings").update({ is_baseline: false }).eq("meal_id", mealId).eq("is_baseline", true);
@@ -47,6 +48,7 @@ export default function ReadingPanel({
 
     const { error: err } = await supabase.from("glucomove_readings").insert({
       meal_id: mealId,
+      user_id: user?.id ?? null,
       timestamp: new Date(timestamp).toISOString(),
       glucose_mmol: val,
       is_baseline: isBaseline,

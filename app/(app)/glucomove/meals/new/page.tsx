@@ -62,10 +62,13 @@ function Toggle({ label, desc, checked, onChange }: { label: string; desc?: stri
 function NewMealPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Accept ?date=YYYY-MM-DD (from today page) or ?day=uuid (from day record page, kept for compat)
+  const dateParam = searchParams.get("date") ?? "";
   const dayId = searchParams.get("day") ?? "";
 
   const now = new Date();
-  const localTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const defaultDate = dateParam || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const localTime = `${defaultDate}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   const [startTime, setStartTime] = useState(localTime);
   const [mealType, setMealType] = useState("lunch");
@@ -87,7 +90,6 @@ function NewMealPageInner() {
   const [error, setError] = useState("");
 
   async function handleSave() {
-    if (!dayId) { setError("Day record ID missing."); return; }
     if (!name.trim()) { setError("Meal name is required."); return; }
     if (!description.trim()) { setError("Meal description is required."); return; }
 
@@ -99,7 +101,7 @@ function NewMealPageInner() {
     const { data: meal, error: mealErr } = await supabase
       .from("glucomove_meals")
       .insert({
-        day_record_id: dayId,
+        day_record_id: dayId || null,
         user_id: user.id,
         meal_start_time: new Date(startTime).toISOString(),
         meal_type: mealType,
@@ -125,6 +127,7 @@ function NewMealPageInner() {
       if (!isNaN(val) && val > 0) {
         await supabase.from("glucomove_readings").insert({
           meal_id: meal.id,
+          user_id: user.id,
           timestamp: new Date(startTime).toISOString(),
           glucose_mmol: val,
           is_baseline: true,

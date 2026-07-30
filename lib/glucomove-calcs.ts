@@ -11,7 +11,8 @@ export type ResponseShape =
 
 export interface GlucoseReading {
   id: string;
-  meal_id: string;
+  meal_id?: string | null;
+  user_id?: string | null;
   timestamp: string;
   glucose_mmol: number;
   is_baseline: boolean;

@@ -88,7 +88,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
         <p style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
           Meals
         </p>
-        <Link href={`/glucomove/meals/new?day=${day.id}`} style={{ textDecoration: "none" }}>
+        <Link href={`/glucomove/meals/new?date=${day.date}`} style={{ textDecoration: "none" }}>
           <button style={{ padding: "6px 14px", backgroundColor: colors.ink, color: colors.background, border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
             + Add meal
           </button>

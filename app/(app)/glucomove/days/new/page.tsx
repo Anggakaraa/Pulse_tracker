@@ -40,9 +40,9 @@ function NewDayRecordPageInner() {
   const [error, setError] = useState("");
 
   async function handleSave() {
-    if (!date || !waking) { setError("Date and waking glucose are required."); return; }
-    const wakingNum = parseFloat(waking);
-    if (isNaN(wakingNum) || wakingNum <= 0) { setError("Enter a valid waking glucose value."); return; }
+    if (!date) { setError("Date is required."); return; }
+    const wakingNum = waking ? parseFloat(waking) : null;
+    if (waking && (isNaN(wakingNum!) || wakingNum! <= 0)) { setError("Enter a valid waking glucose value."); return; }
 
     setSaving(true); setError("");
     const supabase = createSupabaseBrowserClient();
@@ -54,7 +54,7 @@ function NewDayRecordPageInner() {
       .insert({
         user_id: user.id,
         date,
-        waking_glucose_mmol: wakingNum,
+        waking_glucose_mmol: wakingNum ?? null,
         overnight_avg_mmol: overnightAvg ? parseFloat(overnightAvg) : null,
         daily_avg_mmol: dailyAvg ? parseFloat(dailyAvg) : null,
         notes: notes || null,

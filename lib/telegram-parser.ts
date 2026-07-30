@@ -18,15 +18,19 @@ export async function parseTelegramMessage(text: string, sentAt: Date): Promise<
     max_tokens: 600,
     system: `You parse health tracking messages for a personal glucose tracking app. Return ONLY valid JSON, no explanation.
 
-Today's date: ${dateStr}. All glucose values are in mmol/L.
+Today's date: ${dateStr}. All glucose values are in mmol/L. Timezone: WIB (UTC+7).
+
+TIME EXTRACTION: If the message contains a time (e.g. "5.4 11.50", "lunch 12.00 ayam geprek", "5.4 11:30"), extract it as "time":"HH:MM" in 24-hour format. If no time is mentioned, omit the "time" field entirely.
+
+DATE EXTRACTION: If the message contains a date (e.g. "jul 30", "30/7", "yesterday"), resolve it to "YYYY-MM-DD". Otherwise use today: ${dateStr}.
 
 Detect the message type and return the appropriate JSON structure:
 
 TYPE 1 — day_record: mentions waking glucose, morning reading, overnight average, or daily average
-{"type":"day_record","date":"${dateStr}","waking_glucose_mmol":5.2,"overnight_avg_mmol":null,"daily_avg_mmol":null,"notes":null}
+{"type":"day_record","date":"${dateStr}","time":"HH:MM","waking_glucose_mmol":5.2,"overnight_avg_mmol":null,"daily_avg_mmol":null,"notes":null}
 
-TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack) or lists food items with meal context
-{"type":"meal","date":"${dateStr}","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"notes":null}
+TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack, makan) or lists food items with meal context
+{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"notes":null}
 
 primary_carb_source must be one of: none, white_rice, red_brown_rice, bread, fibrous_bread, pasta, wholewheat_pasta, noodles_flour, sugar_dessert, quinoa, cauliflower_rice, other
 Mappings: nasi putih/white rice→white_rice | nasi merah/hitam/brown/black rice→red_brown_rice | mie/bihun/kwetiau/noodles→noodles_flour | spaghetti/pasta→pasta | wholegrain pasta→wholewheat_pasta | roti biasa→bread | roti gandum/wholemeal→fibrous_bread | kue/dessert/sweet→sugar_dessert | no carbs→none
@@ -40,8 +44,8 @@ movement_after: walk/exercise/gym/movement after (extract minutes if mentioned i
 with_alcohol: alcohol, wine, beer
 cooled_starch: cooled rice, cooled starch, reheated rice
 
-TYPE 3 — glucose_reading: just a number or a reading without meal context
-{"type":"glucose_reading","date":"${dateStr}","glucose_mmol":5.4,"is_fasting":false,"notes":null}
+TYPE 3 — glucose_reading: just a number or a short reading without meal context
+{"type":"glucose_reading","date":"${dateStr}","time":"HH:MM","glucose_mmol":5.4,"is_fasting":false,"notes":null}
 is_fasting: true if message says fasting, puasa, before breakfast, morning reading (without it being a full day record)
 
 If the message doesn't fit any type clearly: {"type":"unknown","date":"${dateStr}","notes":"raw message saved"}`,
