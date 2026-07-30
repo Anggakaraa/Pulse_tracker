@@ -303,7 +303,7 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
                 ? <input type="number" step="0.1" value={glucoseMmol} onChange={e => setGlucoseMmol(e.target.value)} style={inputStyle("120px")} />
                 : <span style={{ fontFamily: "var(--font-outfit)", fontSize: "22px", fontWeight: 600, color: colors.ink }}>{glucoseMmol} <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", fontWeight: 400, color: colors.inkMuted }}>mmol/L</span></span>
               }
-              {parsed.is_fasting && <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>Fasting</span>}
+              {!!parsed.is_fasting && <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>Fasting</span>}
             </div>
 
             {!mealPickerOpen ? (
