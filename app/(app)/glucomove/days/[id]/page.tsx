@@ -7,6 +7,7 @@ import {
   PRIMARY_CARB_LABEL, CARB_PROMINENCE_LABEL,
 } from "@/lib/glucomove-calcs";
 import DayRecordEditor from "./DayRecordEditor";
+import DayActions from "./DayActions";
 
 export default async function DayDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,10 +28,13 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
   return (
     <div style={{ padding: "40px 64px", maxWidth: "800px" }}>
       <div style={{ marginBottom: "32px" }}>
-        <Link href="/glucomove" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, marginBottom: "16px" }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
-          Glucomove
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+          <Link href="/glucomove" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
+            Glucomove
+          </Link>
+          <DayActions dayId={day.id} />
+        </div>
         <p style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "4px" }}>
           Day Record
         </p>
@@ -121,7 +125,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   ) : (
                     <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
-                      {metrics.baselineGlucoseMmol !== null ? "Observing…" : "No readings"}
+                      {metrics.baselineGlucoseMmol !== null ? "No peak yet" : "No readings"}
                     </p>
                   )}
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={colors.inkMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

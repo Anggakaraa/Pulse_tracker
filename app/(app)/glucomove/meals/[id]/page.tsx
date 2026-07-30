@@ -7,6 +7,7 @@ import {
   RESPONSE_BAND_LABEL, RESPONSE_BAND_COLOR, RESPONSE_SHAPE_LABEL,
 } from "@/lib/glucomove-calcs";
 import ReadingPanel from "./ReadingPanel";
+import MealActions from "./MealActions";
 
 export default async function MealDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,10 +27,13 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
   return (
     <div style={{ padding: "40px 64px", maxWidth: "760px" }}>
       {/* Nav */}
-      <Link href={`/glucomove/days/${meal.day_record_id}`} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, marginBottom: "20px" }}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
-        Day record
-      </Link>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <Link href={`/glucomove/days/${meal.day_record_id}`} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
+          Day record
+        </Link>
+        <MealActions mealId={meal.id} dayRecordId={meal.day_record_id} />
+      </div>
 
       {/* Header */}
       <p style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "4px" }}>
@@ -113,7 +117,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       {/* Readings */}
-      <ReadingPanel mealId={meal.id} readings={readings} mealStartTime={meal.meal_start_time} observationEndedAt={meal.observation_ended_at} />
+      <ReadingPanel mealId={meal.id} readings={readings} mealStartTime={meal.meal_start_time} />
 
       {/* Notes */}
       {meal.notes && (

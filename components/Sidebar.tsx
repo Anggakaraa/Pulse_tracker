@@ -227,6 +227,18 @@ export default function Sidebar() {
         }
         active={pathname.startsWith("/glucomove/days")}
       />
+      <NavItem
+        label="Drafts"
+        href="/glucomove/drafts"
+        icon={
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 2h8v6l-2 2H2z" />
+            <line x1="4" y1="5" x2="8" y2="5" />
+            <line x1="4" y1="7" x2="6" y2="7" />
+          </svg>
+        }
+        active={pathname.startsWith("/glucomove/drafts")}
+      />
 
       <Divider />
 
