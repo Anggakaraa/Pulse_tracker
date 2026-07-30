@@ -51,7 +51,8 @@ If the message doesn't fit any type clearly: {"type":"unknown","date":"${dateStr
   const raw = response.content[0];
   if (raw.type !== "text") throw new Error("Unexpected response type from Claude");
 
-  const parsed = JSON.parse(raw.text.trim());
+  const jsonText = raw.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  const parsed = JSON.parse(jsonText);
   return {
     type: parsed.type ?? "unknown",
     date: parsed.date ?? dateStr,
