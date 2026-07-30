@@ -24,24 +24,35 @@ async function sendMessage(chatId: number, text: string) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  console.log("Webhook received:", JSON.stringify(body).slice(0, 200));
+
   const msg = body?.message;
 
   // Ignore non-text messages
   if (!msg?.text) return NextResponse.json({ ok: true });
 
+  const incomingId = String(msg.from?.id);
+  const authorizedId = process.env.TELEGRAM_USER_ID;
+  console.log("User ID check:", incomingId, "vs", authorizedId, "match:", incomingId === authorizedId);
+
   // Only accept messages from the authorized user
-  if (String(msg.from?.id) !== process.env.TELEGRAM_USER_ID) {
+  if (incomingId !== authorizedId) {
     return NextResponse.json({ ok: true });
   }
 
   const chatId: number = msg.chat.id;
   const text: string = msg.text;
-  const sentAt = new Date(msg.date * 1000); // Telegram sends Unix timestamp
+  const sentAt = new Date(msg.date * 1000);
+
+  // Send immediate ack so Telegram doesn't retry while we process
+  void sendMessage(chatId, "⏳ Processing…");
 
   const supabase = createSupabaseServiceClient();
 
   try {
+    console.log("Parsing message:", text);
     const parsed = await parseTelegramMessage(text, sentAt);
+    console.log("Parsed:", parsed.type);
 
     await supabase.from("glucomove_telegram_drafts").insert({
       type: parsed.type,
