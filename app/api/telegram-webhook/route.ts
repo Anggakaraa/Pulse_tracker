@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseTelegramMessage } from "@/lib/telegram-parser";
 import { createSupabaseServiceClient } from "@/lib/supabase-service";
 
+// Debug endpoint — remove after confirming webhook works
+export async function GET() {
+  return NextResponse.json({
+    env: {
+      TELEGRAM_BOT_TOKEN: !!process.env.TELEGRAM_BOT_TOKEN,
+      TELEGRAM_USER_ID: process.env.TELEGRAM_USER_ID ?? "NOT SET",
+      ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    },
+  });
+}
+
 async function sendMessage(chatId: number, text: string) {
   await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: "POST",
