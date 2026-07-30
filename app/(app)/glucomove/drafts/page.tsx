@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
 import { colors } from "@/lib/tokens";
 import Link from "next/link";
-import DraftCard from "./DraftCard";
+import DraftsClient from "./DraftsClient";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function DraftsPage() {
     .order("sent_at", { ascending: true });
 
   // Group by date
-  const grouped: Record<string, typeof drafts> = {};
+  const grouped: Record<string, Record<string, unknown>[]> = {};
   for (const draft of drafts ?? []) {
     if (!grouped[draft.date]) grouped[draft.date] = [];
     grouped[draft.date]!.push(draft);
@@ -48,18 +48,7 @@ export default async function DraftsPage() {
         </div>
       )}
 
-      {sortedDates.map(date => (
-        <div key={date} style={{ marginBottom: "32px" }}>
-          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "12px" }}>
-            {new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {grouped[date]!.map(draft => (
-              <DraftCard key={draft.id} draft={draft} />
-            ))}
-          </div>
-        </div>
-      ))}
+      <DraftsClient drafts={drafts ?? []} grouped={grouped} sortedDates={sortedDates} />
     </div>
   );
 }
