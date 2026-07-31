@@ -78,10 +78,12 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
+    const glucoseMmol = gl > 15 ? Math.round((gl / 10) * 100) / 100 : Math.round(gl * 100) / 100;
+
     rows.push({
       user_id: userId,
       timestamp: parsedDate.toISOString(),
-      glucose_mmol: Math.round(gl * 100) / 100,
+      glucose_mmol: glucoseMmol,
       is_baseline: r.is_baseline === true,
       meal_id: null,
       source: "apple_health",
@@ -89,12 +91,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (rows.length === 0) {
-    const sample = rawReadings[0] as RawReading;
-    return NextResponse.json({
-      error: "No valid readings",
-      invalid,
-      debug: { timestampType: typeof sample?.timestamp, timestampValue: String(sample?.timestamp).slice(0, 50), glucoseType: typeof sample?.glucose_mmol, glucoseValue: sample?.glucose_mmol }
-    }, { status: 400 });
+    return NextResponse.json({ error: "No valid readings", invalid }, { status: 400 });
   }
 
   // 4. Upsert — ON CONFLICT (user_id, timestamp) DO NOTHING
