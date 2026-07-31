@@ -24,6 +24,8 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
     meal.movement_after && (meal.movement_duration_minutes ? `Movement after (${meal.movement_duration_minutes} min)` : "Movement after"),
     meal.with_alcohol && "Alcohol",
     meal.cooled_starch && "Cooled starch",
+    meal.fruit_after && "Fruit after",
+    meal.dessert_after && "Dessert after",
   ].filter(Boolean) as string[];
 
   return (
@@ -117,8 +119,8 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               <Row label="Movement" value={mmolDiff(metrics.spikeMmol)} />
               <Row label="Time to peak" value={metrics.timeToPeakMinutes !== null ? `${metrics.timeToPeakMinutes} min` : "—"} />
               <Row label="Recovery time" value={
-                metrics.timeToPeakMinutes !== null && metrics.returnToBaselineMinutes !== null
-                  ? `${metrics.returnToBaselineMinutes - metrics.timeToPeakMinutes} min`
+                metrics.returnToBaselineMinutes !== null
+                  ? `${metrics.returnToBaselineMinutes} min`
                   : "Not yet"
               } />
               <Row label="Post-peak low" value={mmol(metrics.postPeakLowMmol)} />

@@ -107,6 +107,8 @@ function NewMealPageInner() {
   const [movementMinutes, setMovementMinutes] = useState("");
   const [withAlcohol, setWithAlcohol] = useState(false);
   const [cooledStarch, setCooledStarch] = useState(false);
+  const [fruitAfter, setFruitAfter] = useState(false);
+  const [dessertAfter, setDessertAfter] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -141,6 +143,8 @@ function NewMealPageInner() {
         movement_duration_minutes: movementAfter && movementMinutes ? parseInt(movementMinutes) : null,
         with_alcohol: withAlcohol,
         cooled_starch: cooledStarch,
+        fruit_after: fruitAfter,
+        dessert_after: dessertAfter,
       })
       .select("id")
       .single();
@@ -300,6 +304,8 @@ function NewMealPageInner() {
           )}
           <Toggle label="Alcohol" desc="Alcohol consumed as part of this meal or observation" checked={withAlcohol} onChange={setWithAlcohol} />
           <Toggle label="Cooled starch" desc="Main starch was cooled before consumption (including cooled and reheated)" checked={cooledStarch} onChange={setCooledStarch} />
+          <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
+          <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
         </div>
 
         <SectionHead>Baseline reading</SectionHead>

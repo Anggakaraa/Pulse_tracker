@@ -91,6 +91,8 @@ interface MealData {
   movement_duration_minutes: number | null;
   with_alcohol: boolean;
   cooled_starch: boolean;
+  fruit_after: boolean;
+  dessert_after: boolean;
   fiber_prominence: string | null;
   protein_prominence: string | null;
   fat_prominence: string | null;
@@ -114,6 +116,8 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
   const [movementMinutes, setMovementMinutes] = useState(meal.movement_duration_minutes?.toString() ?? "");
   const [withAlcohol, setWithAlcohol]         = useState(meal.with_alcohol);
   const [cooledStarch, setCooledStarch]       = useState(meal.cooled_starch);
+  const [fruitAfter, setFruitAfter]           = useState(meal.fruit_after);
+  const [dessertAfter, setDessertAfter]       = useState(meal.dessert_after);
   const [fiberProminence, setFiberProminence] = useState(meal.fiber_prominence ?? "low");
   const [proteinProminence, setProteinProminence] = useState(meal.protein_prominence ?? "moderate");
   const [fatProminence, setFatProminence]         = useState(meal.fat_prominence ?? "moderate");
@@ -145,6 +149,8 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
         movement_duration_minutes: movementAfter && movementMinutes ? parseInt(movementMinutes) : null,
         with_alcohol: withAlcohol,
         cooled_starch: cooledStarch,
+        fruit_after: fruitAfter,
+        dessert_after: dessertAfter,
         fiber_prominence: fiberProminence,
         protein_prominence: proteinProminence,
         fat_prominence: fatProminence,
@@ -289,6 +295,8 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
         )}
         <Toggle label="Alcohol" desc="Alcohol consumed as part of this meal or observation" checked={withAlcohol} onChange={setWithAlcohol} />
         <Toggle label="Cooled starch" desc="Main starch was cooled before consumption (including cooled and reheated)" checked={cooledStarch} onChange={setCooledStarch} />
+        <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
+        <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
       </div>
 
       <SectionHead>Notes</SectionHead>
