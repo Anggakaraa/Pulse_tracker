@@ -35,6 +35,10 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
     getReadingsForDate(day.date, day.user_id),
   ]);
 
+  const twlPct = readings.length >= 6
+    ? Math.round(readings.filter((r: { glucose_mmol: number }) => r.glucose_mmol <= 7.8).length / readings.length * 100)
+    : null;
+
   type TimelineItem =
     | { kind: "meal"; data: (typeof meals)[number] }
     | { kind: "event"; data: (typeof events)[number] };
@@ -88,7 +92,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
           }
           {day.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(day.overnight_avg_mmol)} />}
           {day.daily_avg_mmol && <Stat label="Daily avg" value={mmol(day.daily_avg_mmol)} />}
-          {day.time_in_range_pct != null && <Stat label="Time in Range" value={`${day.time_in_range_pct}%`} />}
+          {twlPct !== null && <Stat label="TWL" value={`${twlPct}%`} />}
         </div>
         {day.potential_sensor_issue && (
           <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable, marginTop: "12px" }}>

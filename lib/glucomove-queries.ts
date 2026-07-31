@@ -177,14 +177,18 @@ export async function getReadingsForDate(date: string, userId: string) {
 export async function getAllDatesWithActivity(userId: string) {
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: dayRecords }, { data: meals }] = await Promise.all([
+  const [{ data: dayRecords }, { data: meals }, { data: readings }] = await Promise.all([
     supabase
       .from("glucomove_day_records")
-      .select("id, date, waking_glucose_mmol, time_in_range_pct, potential_sensor_issue")
+      .select("id, date, waking_glucose_mmol, potential_sensor_issue")
       .eq("user_id", userId),
     supabase
       .from("glucomove_meals")
       .select("id, meal_start_time")
+      .eq("user_id", userId),
+    supabase
+      .from("glucomove_readings")
+      .select("timestamp, glucose_mmol")
       .eq("user_id", userId),
   ]);
 
@@ -198,6 +202,15 @@ export async function getAllDatesWithActivity(userId: string) {
     mealCountByDate.set(date, (mealCountByDate.get(date) ?? 0) + 1);
   }
 
+  // Group readings by WIB date
+  const readingsByDate = new Map<string, number[]>();
+  for (const r of readings ?? []) {
+    const date = getDateWIBFromTimestamp(r.timestamp);
+    const arr = readingsByDate.get(date) ?? [];
+    arr.push(r.glucose_mmol);
+    readingsByDate.set(date, arr);
+  }
+
   const allDates = new Set([
     ...Array.from(dayRecordByDate.keys()),
     ...Array.from(mealCountByDate.keys()),
@@ -205,11 +218,22 @@ export async function getAllDatesWithActivity(userId: string) {
 
   return [...allDates]
     .sort((a, b) => b.localeCompare(a))
-    .map(date => ({
-      date,
-      dayRecord: dayRecordByDate.get(date) ?? null,
-      mealCount: mealCountByDate.get(date) ?? 0,
-    }));
+    .map(date => {
+      const vals = readingsByDate.get(date) ?? [];
+      const avgGlucose = vals.length >= 3
+        ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10
+        : null;
+      const twlPct = vals.length >= 6
+        ? Math.round(vals.filter(v => v <= 7.8).length / vals.length * 100)
+        : null;
+      return {
+        date,
+        dayRecord: dayRecordByDate.get(date) ?? null,
+        mealCount: mealCountByDate.get(date) ?? 0,
+        avgGlucose,
+        twlPct,
+      };
+    });
 }
 
 export async function getEventById(id: string) {

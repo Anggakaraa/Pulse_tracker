@@ -28,6 +28,8 @@ export interface MealMetrics {
   finalDiffFromBaselineMmol: number | null;
   observationDurationMinutes: number | null;
   returnToBaselineMinutes: number | null;
+  minutesBelow7_8: number | null;
+  iAUC: number | null;
   postPeakLowMmol: number | null;
   dropFromPeakMmol: number | null;
   responseBand: ResponseBand | null;
@@ -85,6 +87,29 @@ export function calcMealMetrics(
   // Post-peak readings
   const postPeak = postBaseline.slice(peakIdx + 1);
 
+  // iAUC: trapezoidal integration of (glucose − baseline) above baseline
+  const allFromBaseline = [baseline, ...postBaseline];
+  let iAUCRaw = 0;
+  for (let i = 1; i < allFromBaseline.length; i++) {
+    const r1 = allFromBaseline[i - 1];
+    const r2 = allFromBaseline[i];
+    const h1 = Math.max(0, r1.glucose_mmol - baseline.glucose_mmol);
+    const h2 = Math.max(0, r2.glucose_mmol - baseline.glucose_mmol);
+    const dt = (new Date(r2.timestamp).getTime() - new Date(r1.timestamp).getTime()) / 60000;
+    iAUCRaw += (h1 + h2) / 2 * dt;
+  }
+  const iAUC = Math.round(iAUCRaw);
+
+  // Time from meal start until glucose falls back below 7.8 (only when peak > 7.8)
+  const minutesBelow7_8 = peak.glucose_mmol <= 7.8
+    ? null
+    : (() => {
+        const firstBelow = postPeak.find(r => r.glucose_mmol <= 7.8);
+        return firstBelow
+          ? Math.round((new Date(firstBelow.timestamp).getTime() - new Date(mealStartTime).getTime()) / 60000)
+          : null;
+      })();
+
   // Return near baseline
   const returnReading = postPeak.find(r => r.glucose_mmol <= baseline.glucose_mmol + RETURN_TOLERANCE);
   const returnToBaselineMinutes = returnReading
@@ -120,6 +145,8 @@ export function calcMealMetrics(
     finalDiffFromBaselineMmol: finalDiff,
     observationDurationMinutes: observationMinutes,
     returnToBaselineMinutes,
+    minutesBelow7_8,
+    iAUC,
     postPeakLowMmol,
     dropFromPeakMmol,
     responseBand,
@@ -173,6 +200,8 @@ function nullMetrics(shape: ResponseShape): MealMetrics {
     finalDiffFromBaselineMmol: null,
     observationDurationMinutes: null,
     returnToBaselineMinutes: null,
+    minutesBelow7_8: null,
+    iAUC: null,
     postPeakLowMmol: null,
     dropFromPeakMmol: null,
     responseBand: null,

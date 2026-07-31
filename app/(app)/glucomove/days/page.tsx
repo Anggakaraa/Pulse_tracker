@@ -35,17 +35,23 @@ export default async function GlucomoveDaysPage() {
         </p>
       ) : (
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px 110px 1fr 80px", backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}`, padding: "10px 16px" }}>
-            {["Date", "TIR", "Meals", ""].map(h => (
+          <div style={{ display: "grid", gridTemplateColumns: "160px 130px 90px 32px", backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}`, padding: "10px 16px", gap: "12px" }}>
+            {["Date", "Avg glucose", "TWL", ""].map(h => (
               <span key={h} style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
                 {h}
               </span>
             ))}
           </div>
-          {dates.map(({ date, dayRecord, mealCount }, i) => {
+          {dates.map(({ date, dayRecord, avgGlucose, twlPct }, i) => {
             const href = dayRecord
               ? `/glucomove/days/${dayRecord.id}`
               : `/glucomove/date/${date}`;
+
+            const avgColor = avgGlucose === null
+              ? colors.inkMuted
+              : avgGlucose <= 5.8 ? "#4A8C62"
+              : avgGlucose <= 7.0 ? "#A8882A"
+              : "#A03828";
 
             return (
               <Link
@@ -53,22 +59,22 @@ export default async function GlucomoveDaysPage() {
                 href={href}
                 style={{
                   textDecoration: "none", color: "inherit",
-                  display: "grid", gridTemplateColumns: "130px 110px 1fr 80px",
+                  display: "grid", gridTemplateColumns: "160px 130px 90px 32px",
+                  gap: "12px",
                   padding: "14px 16px",
                   borderBottom: i < dates.length - 1 ? `1px solid ${colors.border}` : "none",
                   alignItems: "center",
                 }}
               >
                 <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>
-                  {new Date(date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {new Date(date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                  {dayRecord?.potential_sensor_issue && <span style={{ color: colors.badge.stable, marginLeft: "6px" }}>⚠</span>}
                 </span>
-                <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: dayRecord?.time_in_range_pct != null ? colors.ink : colors.inkMuted }}>
-                  {dayRecord?.time_in_range_pct != null ? `${dayRecord.time_in_range_pct}%` : "—"}
+                <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: avgColor }}>
+                  {avgGlucose !== null ? `${avgGlucose} mmol/L` : <span style={{ fontWeight: 400, fontSize: "13px", color: colors.inkMuted }}>—</span>}
                 </span>
-                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-                  {mealCount > 0 ? `${mealCount} meal${mealCount !== 1 ? "s" : ""}` : ""}
-                  {!dayRecord && <span style={{ marginLeft: mealCount > 0 ? "8px" : "0", fontSize: "11px", color: colors.inkMuted, fontStyle: "italic" }}>no day record</span>}
-                  {dayRecord?.potential_sensor_issue && <span style={{ color: colors.badge.stable, marginLeft: "8px" }}>⚠ Sensor flag</span>}
+                <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: twlPct !== null ? colors.ink : colors.inkMuted }}>
+                  {twlPct !== null ? `${twlPct}%` : <span style={{ fontWeight: 400, fontSize: "13px" }}>—</span>}
                 </span>
                 <span style={{ color: colors.inkMuted, display: "flex", justifyContent: "flex-end" }}>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

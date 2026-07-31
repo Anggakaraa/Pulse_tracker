@@ -26,12 +26,10 @@ DATE EXTRACTION: If the message contains a date (e.g. "jul 30", "30/7", "yesterd
 
 Detect the message type and wrap the result in an array. If the message contains data for more than one date, return one element per date.
 
-TYPE 1 — day_record: mentions waking glucose, morning reading, overnight average, daily average, or Time in Range / TIR
-Fields: waking_glucose_mmol, overnight_avg_mmol, daily_avg_mmol, time_in_range_pct (0–100 number), notes
-Extract time_in_range_pct whenever the message says TIR, "time in range", or a pattern like "TIR 86" / "86% TIR" / "TIR: 86".
-Example — "waking 5.2": [{"type":"day_record","date":"${dateStr}","waking_glucose_mmol":5.2,"overnight_avg_mmol":null,"daily_avg_mmol":null,"time_in_range_pct":null,"notes":null}]
-Example — "TIR 82": [{"type":"day_record","date":"${dateStr}","waking_glucose_mmol":null,"overnight_avg_mmol":null,"daily_avg_mmol":null,"time_in_range_pct":82,"notes":null}]
-Example — "31 Jul: waking 4.9 overnight 4.3, 30 Jul: avg 4.3 TIR 86": [{"type":"day_record","date":"2026-07-31","waking_glucose_mmol":4.9,"overnight_avg_mmol":4.3,"daily_avg_mmol":null,"time_in_range_pct":null,"notes":null},{"type":"day_record","date":"2026-07-30","waking_glucose_mmol":null,"overnight_avg_mmol":null,"daily_avg_mmol":4.3,"time_in_range_pct":86,"notes":null}]
+TYPE 1 — day_record: mentions waking glucose, morning reading, overnight average, or daily average
+Fields: waking_glucose_mmol, overnight_avg_mmol, daily_avg_mmol, notes
+Example — "waking 5.2": [{"type":"day_record","date":"${dateStr}","waking_glucose_mmol":5.2,"overnight_avg_mmol":null,"daily_avg_mmol":null,"notes":null}]
+Example — "31 Jul: waking 4.9 overnight 4.3, 30 Jul: avg 4.3": [{"type":"day_record","date":"2026-07-31","waking_glucose_mmol":4.9,"overnight_avg_mmol":4.3,"daily_avg_mmol":null,"notes":null},{"type":"day_record","date":"2026-07-30","waking_glucose_mmol":null,"overnight_avg_mmol":null,"daily_avg_mmol":4.3,"notes":null}]
 
 TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack, makan) or lists food items with meal context
 [{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":["white_rice"],"carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"fruit_after":false,"dessert_after":false,"added_sugar":false,"large_portion":false,"eating_out":false,"notes":null}]

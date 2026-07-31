@@ -116,16 +116,14 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
               <Row label="Baseline" value={mmol(metrics.baselineGlucoseMmol)} />
               <Row label="Peak" value={mmol(metrics.peakGlucoseMmol)} />
               <Row label="Movement" value={mmolDiff(metrics.spikeMmol)} />
               <Row label="Time to peak" value={metrics.timeToPeakMinutes !== null ? `${metrics.timeToPeakMinutes} min` : "—"} />
-              <Row label="Recovery time" value={
-                metrics.returnToBaselineMinutes !== null
-                  ? `${metrics.returnToBaselineMinutes} min`
-                  : "Not yet"
-              } />
+              <Row label="Recovery time" value={metrics.returnToBaselineMinutes !== null ? `${metrics.returnToBaselineMinutes} min` : "Not yet"} />
+              <Row label="Time below 7.8" value={metrics.minutesBelow7_8 !== null ? `${metrics.minutesBelow7_8} min` : metrics.peakGlucoseMmol !== null && metrics.peakGlucoseMmol <= 7.8 ? "Never crossed" : "Not yet"} />
+              <Row label="iAUC" value={metrics.iAUC !== null ? `${metrics.iAUC} mmol/L·min` : "—"} />
               <Row label="Post-peak low" value={mmol(metrics.postPeakLowMmol)} />
             </div>
           </>

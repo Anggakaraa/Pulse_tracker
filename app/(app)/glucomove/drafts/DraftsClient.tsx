@@ -9,7 +9,7 @@ import { PRIMARY_CARB_LABEL, MEAL_TYPE_LABEL } from "@/lib/glucomove-calcs";
 type Draft = Record<string, unknown>;
 
 interface DraftEdits {
-  waking: string; overnight: string; daily: string; tir: string;
+  waking: string; overnight: string; daily: string;
   mealName: string; mealDesc: string; mealType: string;
   carbSource: string[]; carbProminence: string;
   acvBefore: boolean; structuredEating: boolean;
@@ -27,7 +27,6 @@ function initEdits(draft: Draft): DraftEdits {
     waking: String(p.waking_glucose_mmol ?? ""),
     overnight: String(p.overnight_avg_mmol ?? ""),
     daily: String(p.daily_avg_mmol ?? ""),
-    tir: String(p.time_in_range_pct ?? ""),
     mealName: String(p.name ?? ""),
     mealDesc: String(p.description ?? ""),
     mealType: String(p.meal_type ?? "other"),
@@ -82,7 +81,6 @@ async function approveOne(
       waking_glucose_mmol: e.waking ? parseFloat(e.waking) : null,
       overnight_avg_mmol: e.overnight ? parseFloat(e.overnight) : null,
       daily_avg_mmol: e.daily ? parseFloat(e.daily) : null,
-      time_in_range_pct: e.tir ? parseFloat(e.tir) : null,
     }, { onConflict: "user_id,date" });
     return error?.message ?? null;
   }
@@ -149,7 +147,6 @@ function compactSummary(draft: Draft): string {
   if (type === "day_record") {
     const parts = [];
     if (p.waking_glucose_mmol) parts.push(`Waking: ${p.waking_glucose_mmol} mmol/L`);
-    if (p.time_in_range_pct != null) parts.push(`TIR: ${p.time_in_range_pct}%`);
     return parts.length > 0 ? parts.join(" · ") : "No waking glucose";
   }
   if (type === "meal") return `${String(p.name ?? "—")} — ${MEAL_TYPE_LABEL[String(p.meal_type ?? "")] ?? "Meal"}`;
@@ -243,11 +240,10 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
             </p>
 
             {type === "day_record" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
                 <div><FL>Waking (mmol/L)</FL><input type="number" step="0.1" value={edits.waking} onChange={e => onEdit("waking", e.target.value)} style={inputSt()} /></div>
                 <div><FL>Overnight avg</FL><input type="number" step="0.1" value={edits.overnight} onChange={e => onEdit("overnight", e.target.value)} style={inputSt()} /></div>
                 <div><FL>Daily avg</FL><input type="number" step="0.1" value={edits.daily} onChange={e => onEdit("daily", e.target.value)} style={inputSt()} /></div>
-                <div><FL>TIR (%)</FL><input type="number" step="1" min="0" max="100" value={edits.tir} onChange={e => onEdit("tir", e.target.value)} style={inputSt()} /></div>
               </div>
             )}
 
