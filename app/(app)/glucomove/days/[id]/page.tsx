@@ -49,6 +49,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
           <Stat label="Waking glucose" value={mmol(day.waking_glucose_mmol)} />
           {day.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(day.overnight_avg_mmol)} />}
           {day.daily_avg_mmol && <Stat label="Daily avg" value={mmol(day.daily_avg_mmol)} />}
+          {day.time_in_range_pct != null && <Stat label="Time in Range" value={`${day.time_in_range_pct}%`} />}
         </div>
         {day.potential_sensor_issue && (
           <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable, marginTop: "12px" }}>
@@ -67,19 +68,59 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Derived day summary */}
       {meals.length > 0 && validSpikes.length > 0 && (
-        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px", backgroundColor: colors.surface }}>
-          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "16px" }}>
-            Day summary
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-            <Stat label="Meals recorded" value={String(meals.length)} />
-            <Stat label="Avg spike" value={avgSpike !== null ? mmolDiff(Math.round(avgSpike * 10) / 10) : "—"} />
-            <Stat label="Highest spike" value={highestSpike !== null ? mmolDiff(highestSpike) : "—"} />
-            <Stat label="Low movement" value={String(lowCount)} />
-            <Stat label="Moderate movement" value={String(modCount)} />
-            <Stat label="High movement" value={String(highCount)} />
+        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", marginBottom: "24px", backgroundColor: colors.surface, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: `1px solid ${colors.border}` }}>
+            <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
+              Day summary
+            </p>
           </div>
-          {hasAlcohol && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginTop: "12px" }}>Alcohol present in one or more meals.</p>}
+
+          {/* Headline metrics — divided cells */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)" }}>
+            {[
+              { label: "Meals", value: String(meals.length) },
+              { label: "Avg spike", value: avgSpike !== null ? mmolDiff(Math.round(avgSpike * 10) / 10) : "—" },
+              { label: "Highest spike", value: highestSpike !== null ? mmolDiff(highestSpike) : "—" },
+            ].map(({ label, value }, i) => (
+              <div key={label} style={{ padding: "16px 20px", borderRight: i < 2 ? `1px solid ${colors.border}` : "none" }}>
+                <p style={{ fontFamily: "var(--font-outfit)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "6px" }}>
+                  {label}
+                </p>
+                <p style={{ fontFamily: "var(--font-outfit)", fontSize: "20px", fontWeight: 600, color: colors.ink, letterSpacing: "-0.01em" }}>
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Response breakdown */}
+          <div style={{ borderTop: `1px solid ${colors.border}`, padding: "12px 20px", display: "flex", alignItems: "center", gap: "6px" }}>
+            <p style={{ fontFamily: "var(--font-outfit)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginRight: "8px" }}>
+              Responses
+            </p>
+            {[
+              { label: "Low",      count: lowCount,  color: "#4A8C62" },
+              { label: "Moderate", count: modCount,  color: "#A8882A" },
+              { label: "High",     count: highCount, color: "#A03828" },
+            ].map(({ label, count, color }, i) => (
+              <>
+                {i > 0 && <span key={`sep-${label}`} style={{ color: colors.border, fontSize: "14px", userSelect: "none" }}>·</span>}
+                <span key={label} style={{ display: "inline-flex", alignItems: "baseline", gap: "4px" }}>
+                  <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: count > 0 ? color : colors.inkMuted }}>
+                    {count}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                    {label.toLowerCase()}
+                  </span>
+                </span>
+              </>
+            ))}
+            {hasAlcohol && (
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginLeft: "auto" }}>
+                Alcohol flagged
+              </span>
+            )}
+          </div>
         </div>
       )}
 

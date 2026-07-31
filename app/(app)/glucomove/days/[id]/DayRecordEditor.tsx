@@ -21,6 +21,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
   const [waking, setWaking] = useState(String(day.waking_glucose_mmol ?? ""));
   const [overnightAvg, setOvernightAvg] = useState(String(day.overnight_avg_mmol ?? ""));
   const [dailyAvg, setDailyAvg] = useState(String(day.daily_avg_mmol ?? ""));
+  const [tir, setTir] = useState(String(day.time_in_range_pct ?? ""));
   const [notes, setNotes] = useState(String(day.notes ?? ""));
   const [sensorIssue, setSensorIssue] = useState(Boolean(day.potential_sensor_issue));
   const [saving, setSaving] = useState(false);
@@ -35,6 +36,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
         waking_glucose_mmol: parseFloat(waking),
         overnight_avg_mmol: overnightAvg ? parseFloat(overnightAvg) : null,
         daily_avg_mmol: dailyAvg ? parseFloat(dailyAvg) : null,
+        time_in_range_pct: tir ? parseFloat(tir) : null,
         notes: notes || null,
         potential_sensor_issue: sensorIssue,
         updated_at: new Date().toISOString(),
@@ -62,7 +64,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
         Edit day record
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
           <div>
             <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "6px" }}>Waking (mmol/L) *</p>
             <input type="number" step="0.1" min="0" value={waking} onChange={e => setWaking(e.target.value)} style={inputStyle()} />
@@ -74,6 +76,10 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
           <div>
             <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "6px" }}>Daily avg (mmol/L)</p>
             <input type="number" step="0.1" min="0" value={dailyAvg} onChange={e => setDailyAvg(e.target.value)} style={inputStyle()} />
+          </div>
+          <div>
+            <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "6px" }}>Time in Range (%)</p>
+            <input type="number" step="1" min="0" max="100" placeholder="e.g. 87" value={tir} onChange={e => setTir(e.target.value)} style={inputStyle()} />
           </div>
         </div>
         <div>

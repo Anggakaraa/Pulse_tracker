@@ -222,6 +222,24 @@ export const PRIMARY_CARB_LABEL: Record<string, string> = {
   other: "Other",
 };
 
+export const FIBER_PROMINENCE_LABEL: Record<string, string> = {
+  low:      "Low fiber",
+  moderate: "Moderate fiber",
+  high:     "High fiber",
+};
+
+export const PROTEIN_PROMINENCE_LABEL: Record<string, string> = {
+  low:      "Low protein",
+  moderate: "Moderate protein",
+  high:     "High protein",
+};
+
+export const FAT_PROMINENCE_LABEL: Record<string, string> = {
+  low:      "Low fat",
+  moderate: "Moderate fat",
+  high:     "High fat",
+};
+
 export const CARB_PROMINENCE_LABEL: Record<string, string> = {
   none: "None",
   supporting: "Supporting",

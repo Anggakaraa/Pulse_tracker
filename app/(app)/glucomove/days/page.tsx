@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { getAllDayRecords, getDayWithMealsAndMetrics } from "@/lib/glucomove-queries";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import { getAllDatesWithActivity } from "@/lib/glucomove-queries";
 import { colors } from "@/lib/tokens";
-import { mmol, RESPONSE_BAND_COLOR } from "@/lib/glucomove-calcs";
+export const dynamic = "force-dynamic";
 
 export default async function GlucomoveDaysPage() {
-  const records = await getAllDayRecords();
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const dates = await getAllDatesWithActivity(user.id);
 
   return (
     <div style={{ padding: "40px 64px", maxWidth: "800px" }}>
@@ -24,38 +29,55 @@ export default async function GlucomoveDaysPage() {
         </Link>
       </div>
 
-      {records.length === 0 ? (
+      {dates.length === 0 ? (
         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>
-          No day records yet.
+          No activity recorded yet.
         </p>
       ) : (
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", overflow: "hidden" }}>
-          {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "120px 120px 1fr 80px", backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}`, padding: "10px 16px" }}>
-            {["Date", "Waking", "Meals", ""].map(h => (
+          <div style={{ display: "grid", gridTemplateColumns: "130px 110px 1fr 80px", backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}`, padding: "10px 16px" }}>
+            {["Date", "TIR", "Meals", ""].map(h => (
               <span key={h} style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
                 {h}
               </span>
             ))}
           </div>
-          {records.map((rec, i) => (
-            <Link key={rec.id} href={`/glucomove/days/${rec.id}`} style={{ textDecoration: "none", color: "inherit", display: "grid", gridTemplateColumns: "120px 120px 1fr 80px", padding: "14px 16px", borderBottom: i < records.length - 1 ? `1px solid ${colors.border}` : "none", alignItems: "center" }}>
-              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>
-                {new Date(rec.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </span>
-              <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: colors.ink }}>
-                {mmol(rec.waking_glucose_mmol)}
-              </span>
-              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-                {rec.potential_sensor_issue && <span style={{ color: colors.badge.stable, marginRight: "8px" }}>⚠ Sensor flag</span>}
-              </span>
-              <span style={{ color: colors.inkMuted, display: "flex", justifyContent: "flex-end" }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 3l4 4-4 4" />
-                </svg>
-              </span>
-            </Link>
-          ))}
+          {dates.map(({ date, dayRecord, mealCount }, i) => {
+            const href = dayRecord
+              ? `/glucomove/days/${dayRecord.id}`
+              : `/glucomove/date/${date}`;
+
+            return (
+              <Link
+                key={date}
+                href={href}
+                style={{
+                  textDecoration: "none", color: "inherit",
+                  display: "grid", gridTemplateColumns: "130px 110px 1fr 80px",
+                  padding: "14px 16px",
+                  borderBottom: i < dates.length - 1 ? `1px solid ${colors.border}` : "none",
+                  alignItems: "center",
+                }}
+              >
+                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>
+                  {new Date(date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+                <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: dayRecord?.time_in_range_pct != null ? colors.ink : colors.inkMuted }}>
+                  {dayRecord?.time_in_range_pct != null ? `${dayRecord.time_in_range_pct}%` : "—"}
+                </span>
+                <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+                  {mealCount > 0 ? `${mealCount} meal${mealCount !== 1 ? "s" : ""}` : ""}
+                  {!dayRecord && <span style={{ marginLeft: mealCount > 0 ? "8px" : "0", fontSize: "11px", color: colors.inkMuted, fontStyle: "italic" }}>no day record</span>}
+                  {dayRecord?.potential_sensor_issue && <span style={{ color: colors.badge.stable, marginLeft: "8px" }}>⚠ Sensor flag</span>}
+                </span>
+                <span style={{ color: colors.inkMuted, display: "flex", justifyContent: "flex-end" }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 3l4 4-4 4" />
+                  </svg>
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

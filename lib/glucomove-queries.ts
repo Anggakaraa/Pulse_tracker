@@ -80,7 +80,7 @@ async function getReadingsForMeal(
   mealStartTime: string
 ) {
   const mealMs = new Date(mealStartTime).getTime();
-  const windowStart = new Date(mealMs - 45 * 60 * 1000).toISOString();
+  const windowStart = new Date(mealMs - 15 * 60 * 1000).toISOString();
   const windowEnd   = new Date(mealMs + 120 * 60 * 1000).toISOString();
 
   const [{ data: attached }, { data: floating }] = await Promise.all([
@@ -151,6 +151,89 @@ export async function getDayWithMealsAndMetrics(dayRecordId: string) {
   );
 
   return { day, meals: mealsWithReadings };
+}
+
+// Convert any UTC timestamp to a WIB (UTC+7) date string
+function getDateWIBFromTimestamp(timestamp: string): string {
+  const d = new Date(new Date(timestamp).getTime() + 7 * 60 * 60 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+// All readings in WIB date window for a user (free-floating + meal-attached)
+export async function getReadingsForDate(date: string, userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { start, end } = dayWindowWIB(date);
+  const { data } = await supabase
+    .from("glucomove_readings")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("timestamp", start)
+    .lte("timestamp", end)
+    .order("timestamp", { ascending: true });
+  return data ?? [];
+}
+
+// Union of all dates that have a day record OR meals
+export async function getAllDatesWithActivity(userId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const [{ data: dayRecords }, { data: meals }] = await Promise.all([
+    supabase
+      .from("glucomove_day_records")
+      .select("id, date, waking_glucose_mmol, time_in_range_pct, potential_sensor_issue")
+      .eq("user_id", userId),
+    supabase
+      .from("glucomove_meals")
+      .select("id, meal_start_time")
+      .eq("user_id", userId),
+  ]);
+
+  const dayRecordByDate = new Map(
+    (dayRecords ?? []).map(r => [r.date, r])
+  );
+
+  const mealCountByDate = new Map<string, number>();
+  for (const meal of meals ?? []) {
+    const date = getDateWIBFromTimestamp(meal.meal_start_time);
+    mealCountByDate.set(date, (mealCountByDate.get(date) ?? 0) + 1);
+  }
+
+  const allDates = new Set([
+    ...Array.from(dayRecordByDate.keys()),
+    ...Array.from(mealCountByDate.keys()),
+  ]);
+
+  return [...allDates]
+    .sort((a, b) => b.localeCompare(a))
+    .map(date => ({
+      date,
+      dayRecord: dayRecordByDate.get(date) ?? null,
+      mealCount: mealCountByDate.get(date) ?? 0,
+    }));
+}
+
+export async function getEventById(id: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("glucomove_events")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return data;
+}
+
+// Events for a given date (keyed by start_time in WIB window)
+export async function getEventsForDate(date: string, userId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { start, end } = dayWindowWIB(date);
+  const { data } = await supabase
+    .from("glucomove_events")
+    .select("*")
+    .eq("user_id", userId)
+    .gte("start_time", start)
+    .lte("start_time", end)
+    .order("start_time", { ascending: true });
+  return data ?? [];
 }
 
 export { getDateWIB };

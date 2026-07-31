@@ -51,26 +51,38 @@ export async function POST(req: NextRequest) {
 
   try {
     console.log("Parsing message:", text);
-    const parsed = await parseTelegramMessage(text, sentAt);
-    console.log("Parsed:", parsed.type);
+    const results = await parseTelegramMessage(text, sentAt);
+    console.log("Parsed:", results.map(r => r.type).join(", "));
 
-    await supabase.from("glucomove_telegram_drafts").insert({
-      type: parsed.type,
-      raw_message: text,
-      parsed_data: parsed.data,
-      date: parsed.date,
-      telegram_message_id: msg.message_id,
-      sent_at: sentAt.toISOString(),
-    });
+    await supabase.from("glucomove_telegram_drafts").insert(
+      results.map(parsed => ({
+        type: parsed.type,
+        raw_message: text,
+        parsed_data: parsed.data,
+        date: parsed.date,
+        telegram_message_id: msg.message_id,
+        sent_at: sentAt.toISOString(),
+      }))
+    );
 
-    const replies: Record<string, string> = {
-      day_record: `✅ Day record saved as draft\nWaking: ${parsed.data.waking_glucose_mmol ?? "?"} mmol/L`,
-      meal: `✅ ${String(parsed.data.meal_type ?? "Meal")} saved as draft\n${String(parsed.data.name ?? text.slice(0, 50))}`,
-      glucose_reading: `✅ Reading saved as draft: ${parsed.data.glucose_mmol} mmol/L`,
-      unknown: `⚠️ Saved as draft — couldn't fully parse. Review in app.`,
-    };
+    function draftReplyLine(parsed: { type: string; date: string; data: Record<string, unknown> }): string {
+      const d = parsed.data;
+      if (parsed.type === "day_record") {
+        const parts: string[] = [`📅 ${parsed.date}`];
+        if (d.waking_glucose_mmol != null) parts.push(`Waking: ${d.waking_glucose_mmol} mmol/L`);
+        if (d.time_in_range_pct != null) parts.push(`TIR: ${d.time_in_range_pct}%`);
+        if (d.overnight_avg_mmol != null) parts.push(`Overnight: ${d.overnight_avg_mmol} mmol/L`);
+        if (d.daily_avg_mmol != null) parts.push(`Daily avg: ${d.daily_avg_mmol} mmol/L`);
+        return `✅ Day record — ${parts.join(" · ")}`;
+      }
+      if (parsed.type === "meal") return `✅ ${String(d.meal_type ?? "Meal")} — ${String(d.name ?? text.slice(0, 50))}`;
+      if (parsed.type === "glucose_reading") return `✅ Reading: ${d.glucose_mmol} mmol/L`;
+      if (parsed.type === "event") return `✅ Event: ${String(d.name ?? d.event_type ?? "event")}`;
+      return `⚠️ Saved as draft — couldn't fully parse. Review in app.`;
+    }
 
-    await sendMessage(chatId, replies[parsed.type] ?? "✅ Saved as draft");
+    const replyLines = results.map(draftReplyLine);
+    await sendMessage(chatId, replyLines.join("\n"));
 
   } catch (err) {
     console.error("Telegram webhook error:", err);
@@ -85,7 +97,8 @@ export async function POST(req: NextRequest) {
       sent_at: sentAt.toISOString(),
     });
 
-    await sendMessage(chatId, "⚠️ Saved as draft — couldn't parse. Review in app.");
+    const errDetail = err instanceof Error ? err.message : String(err);
+    await sendMessage(chatId, `⚠️ Saved as draft — parse failed.\n${errDetail.slice(0, 200)}`);
   }
 
   return NextResponse.json({ ok: true });

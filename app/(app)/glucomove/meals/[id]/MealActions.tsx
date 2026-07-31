@@ -2,19 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-export default function MealActions({ mealId, dayRecordId }: { mealId: string; dayRecordId: string }) {
+export default function MealActions({
+  mealId,
+  dayRecordId,
+  mealDate,
+}: {
+  mealId: string;
+  dayRecordId: string | null;
+  mealDate: string; // YYYY-MM-DD in WIB
+}) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const backHref = dayRecordId
+    ? `/glucomove/days/${dayRecordId}`
+    : `/glucomove/date/${mealDate}`;
 
   async function handleDelete() {
     setDeleting(true);
     const supabase = createSupabaseBrowserClient();
     await supabase.from("glucomove_meals").delete().eq("id", mealId);
-    router.push(`/glucomove/days/${dayRecordId}`);
+    router.push(backHref);
   }
 
   if (confirming) {
@@ -39,11 +52,18 @@ export default function MealActions({ mealId, dayRecordId }: { mealId: string; d
   }
 
   return (
-    <button
-      onClick={() => setConfirming(true)}
-      style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}
-    >
-      Delete meal
-    </button>
+    <div style={{ display: "flex", gap: "8px" }}>
+      <Link href={`/glucomove/meals/${mealId}/edit`} style={{ textDecoration: "none" }}>
+        <button style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}>
+          Edit meal
+        </button>
+      </Link>
+      <button
+        onClick={() => setConfirming(true)}
+        style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}
+      >
+        Delete meal
+      </button>
+    </div>
   );
 }

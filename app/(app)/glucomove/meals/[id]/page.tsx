@@ -4,6 +4,7 @@ import { colors } from "@/lib/tokens";
 import {
   mmol, mmolDiff,
   MEAL_TYPE_LABEL, PRIMARY_CARB_LABEL, CARB_PROMINENCE_LABEL,
+  FIBER_PROMINENCE_LABEL, PROTEIN_PROMINENCE_LABEL, FAT_PROMINENCE_LABEL,
   RESPONSE_BAND_LABEL, RESPONSE_BAND_COLOR, RESPONSE_SHAPE_LABEL,
 } from "@/lib/glucomove-calcs";
 import ReadingPanel from "./ReadingPanel";
@@ -17,6 +18,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
   const { meal, readings, metrics } = data;
 
   const activeModifiers = [
+    meal.fat_before && "Fat buffer before",
     meal.acv_before && "ACV before",
     meal.structured_eating && "Structured eating",
     meal.movement_after && (meal.movement_duration_minutes ? `Movement after (${meal.movement_duration_minutes} min)` : "Movement after"),
@@ -27,13 +29,22 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
   return (
     <div style={{ padding: "40px 64px", maxWidth: "760px" }}>
       {/* Nav */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-        <Link href={`/glucomove/days/${meal.day_record_id}`} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
-          Day record
-        </Link>
-        <MealActions mealId={meal.id} dayRecordId={meal.day_record_id} />
-      </div>
+      {(() => {
+        const mealDate = new Date(new Date(meal.meal_start_time).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const backHref = meal.day_record_id
+          ? `/glucomove/days/${meal.day_record_id}`
+          : `/glucomove/date/${mealDate}`;
+        const backLabel = meal.day_record_id ? "Day record" : "Back";
+        return (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+            <Link href={backHref} style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2L3.5 6l4 4" /></svg>
+              {backLabel}
+            </Link>
+            <MealActions mealId={meal.id} dayRecordId={meal.day_record_id} mealDate={mealDate} />
+          </div>
+        );
+      })()}
 
       {/* Header */}
       <p style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "4px" }}>
@@ -52,7 +63,10 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
           <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "12px" }}>Carb profile</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <Row label="Primary source" value={PRIMARY_CARB_LABEL[meal.primary_carb_source]} />
-            <Row label="Prominence" value={CARB_PROMINENCE_LABEL[meal.carb_prominence]} />
+            <Row label="Carb prominence" value={CARB_PROMINENCE_LABEL[meal.carb_prominence]} />
+            <Row label="Fiber content" value={meal.fiber_prominence ? FIBER_PROMINENCE_LABEL[meal.fiber_prominence] : "—"} />
+            <Row label="Protein content" value={meal.protein_prominence ? PROTEIN_PROMINENCE_LABEL[meal.protein_prominence] : "—"} />
+            <Row label="Fat content" value={meal.fat_prominence ? FAT_PROMINENCE_LABEL[meal.fat_prominence] : "—"} />
           </div>
         </div>
 

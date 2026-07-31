@@ -9,14 +9,15 @@ import { PRIMARY_CARB_LABEL, MEAL_TYPE_LABEL } from "@/lib/glucomove-calcs";
 type Draft = Record<string, unknown>;
 
 interface DraftEdits {
-  waking: string; overnight: string; daily: string;
+  waking: string; overnight: string; daily: string; tir: string;
   mealName: string; mealDesc: string; mealType: string;
   carbSource: string; carbProminence: string;
   acvBefore: boolean; structuredEating: boolean;
   movementAfter: boolean; movementMinutes: string;
   withAlcohol: boolean; cooledStarch: boolean;
-  mealTime: string;
+  mealTime: string; fiberProminence: string; proteinProminence: string; fatProminence: string; fatBefore: boolean;
   glucoseMmol: string; readingTime: string;
+  eventName: string; eventType: string; eventTime: string; eventEndTime: string; eventIntensity: string;
 }
 
 function initEdits(draft: Draft): DraftEdits {
@@ -25,6 +26,7 @@ function initEdits(draft: Draft): DraftEdits {
     waking: String(p.waking_glucose_mmol ?? ""),
     overnight: String(p.overnight_avg_mmol ?? ""),
     daily: String(p.daily_avg_mmol ?? ""),
+    tir: String(p.time_in_range_pct ?? ""),
     mealName: String(p.name ?? ""),
     mealDesc: String(p.description ?? ""),
     mealType: String(p.meal_type ?? "other"),
@@ -37,8 +39,17 @@ function initEdits(draft: Draft): DraftEdits {
     withAlcohol: Boolean(p.with_alcohol),
     cooledStarch: Boolean(p.cooled_starch),
     mealTime: String(p.time ?? ""),
+    fiberProminence: String(p.fiber_prominence ?? "low"),
+    proteinProminence: String(p.protein_prominence ?? "moderate"),
+    fatProminence: String(p.fat_prominence ?? "moderate"),
+    fatBefore: Boolean(p.fat_before),
     glucoseMmol: String(p.glucose_mmol ?? ""),
     readingTime: String(p.time ?? ""),
+    eventName: String(p.name ?? ""),
+    eventType: String(p.event_type ?? "other"),
+    eventTime: String(p.time ?? ""),
+    eventEndTime: String(p.end_time ?? ""),
+    eventIntensity: String(p.intensity ?? ""),
   };
 }
 
@@ -65,6 +76,7 @@ async function approveOne(
       waking_glucose_mmol: e.waking ? parseFloat(e.waking) : null,
       overnight_avg_mmol: e.overnight ? parseFloat(e.overnight) : null,
       daily_avg_mmol: e.daily ? parseFloat(e.daily) : null,
+      time_in_range_pct: e.tir ? parseFloat(e.tir) : null,
     }, { onConflict: "user_id,date" });
     return error?.message ?? null;
   }
@@ -76,6 +88,10 @@ async function approveOne(
       meal_start_time: ts, meal_type: e.mealType,
       name: e.mealName, description: e.mealDesc || e.mealName,
       primary_carb_source: e.carbSource, carb_prominence: e.carbProminence,
+      fiber_prominence: e.fiberProminence || "low",
+      protein_prominence: e.proteinProminence || "moderate",
+      fat_prominence: e.fatProminence || "moderate",
+      fat_before: e.fatBefore,
       acv_before: e.acvBefore, structured_eating: e.structuredEating,
       movement_after: e.movementAfter,
       movement_duration_minutes: e.movementAfter && e.movementMinutes ? parseInt(e.movementMinutes) : null,
@@ -93,24 +109,44 @@ async function approveOne(
     return error?.message ?? null;
   }
 
+  if (type === "event") {
+    const startTs = resolveTs(date, e.eventTime, sentAt);
+    const endTs   = e.eventEndTime ? new Date(`${date}T${e.eventEndTime}:00+07:00`).toISOString() : null;
+    const { error } = await supabase.from("glucomove_events").insert({
+      user_id: userId,
+      name: e.eventName || "Event",
+      event_type: e.eventType || "other",
+      start_time: startTs,
+      end_time: endTs,
+      intensity: e.eventIntensity || null,
+    });
+    return error?.message ?? null;
+  }
+
   return "Unknown type — dismiss or enter manually.";
 }
 
 const TYPE_LABEL: Record<string, string> = {
   day_record: "Day record", meal: "Meal",
-  glucose_reading: "Glucose reading", unknown: "Unknown",
+  glucose_reading: "Glucose reading", event: "Event", unknown: "Unknown",
 };
 const TYPE_COLOR: Record<string, string> = {
   day_record: colors.badge.optimal, meal: colors.ink,
-  glucose_reading: colors.badge.stable, unknown: colors.inkMuted,
+  glucose_reading: colors.badge.stable, event: "#B5522A", unknown: colors.inkMuted,
 };
 
 function compactSummary(draft: Draft): string {
   const p = draft.parsed_data as Record<string, unknown>;
   const type = draft.type as string;
-  if (type === "day_record") return p.waking_glucose_mmol ? `Waking: ${p.waking_glucose_mmol} mmol/L` : "No waking glucose";
+  if (type === "day_record") {
+    const parts = [];
+    if (p.waking_glucose_mmol) parts.push(`Waking: ${p.waking_glucose_mmol} mmol/L`);
+    if (p.time_in_range_pct != null) parts.push(`TIR: ${p.time_in_range_pct}%`);
+    return parts.length > 0 ? parts.join(" · ") : "No waking glucose";
+  }
   if (type === "meal") return `${String(p.name ?? "—")} — ${MEAL_TYPE_LABEL[String(p.meal_type ?? "")] ?? "Meal"}`;
   if (type === "glucose_reading") return `${p.glucose_mmol} mmol/L`;
+  if (type === "event") return `${String(p.name ?? "—")} (${String(p.event_type ?? "other")})`;
   return `"${String(draft.raw_message ?? "").slice(0, 60)}"`;
 }
 
@@ -199,10 +235,11 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
             </p>
 
             {type === "day_record" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
                 <div><FL>Waking (mmol/L)</FL><input type="number" step="0.1" value={edits.waking} onChange={e => onEdit("waking", e.target.value)} style={inputSt()} /></div>
                 <div><FL>Overnight avg</FL><input type="number" step="0.1" value={edits.overnight} onChange={e => onEdit("overnight", e.target.value)} style={inputSt()} /></div>
                 <div><FL>Daily avg</FL><input type="number" step="0.1" value={edits.daily} onChange={e => onEdit("daily", e.target.value)} style={inputSt()} /></div>
+                <div><FL>TIR (%)</FL><input type="number" step="1" min="0" max="100" value={edits.tir} onChange={e => onEdit("tir", e.target.value)} style={inputSt()} /></div>
               </div>
             )}
 
@@ -218,11 +255,43 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
                   </div>
                   <div><FL>Time (HH:MM)</FL><input type="text" value={edits.mealTime} onChange={e => onEdit("mealTime", e.target.value)} style={inputSt()} /></div>
                 </div>
-                <div>
-                  <FL>Primary carb</FL>
-                  <select value={edits.carbSource} onChange={e => onEdit("carbSource", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
-                    {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div>
+                    <FL>Primary carb</FL>
+                    <select value={edits.carbSource} onChange={e => onEdit("carbSource", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
+                      {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <FL>Fiber content</FL>
+                    <select value={edits.fiberProminence} onChange={e => onEdit("fiberProminence", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
+                      <option value="low">Low</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <FL>Protein content</FL>
+                    <select value={edits.proteinProminence} onChange={e => onEdit("proteinProminence", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
+                      <option value="low">Low</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <FL>Fat content</FL>
+                    <select value={edits.fatProminence} onChange={e => onEdit("fatProminence", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
+                      <option value="low">Low</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                    <input type="checkbox" checked={edits.fatBefore} onChange={e => onEdit("fatBefore", e.target.checked)} style={{ accentColor: colors.ink }} />
+                    Fat buffer before
+                  </label>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "10px" }}>
                   {([
@@ -245,6 +314,33 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
               <div style={{ display: "flex", gap: "12px" }}>
                 <div><FL>Glucose (mmol/L)</FL><input type="number" step="0.1" value={edits.glucoseMmol} onChange={e => onEdit("glucoseMmol", e.target.value)} style={inputSt("120px")} /></div>
                 <div><FL>Time (HH:MM)</FL><input type="text" placeholder={sentAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} value={edits.readingTime} onChange={e => onEdit("readingTime", e.target.value)} style={inputSt("100px")} /></div>
+              </div>
+            )}
+
+            {type === "event" && (
+              <div style={{ display: "flex", flexDirection: "column" as const, gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 120px 100px", gap: "10px" }}>
+                  <div><FL>Name</FL><input type="text" value={edits.eventName} onChange={e => onEdit("eventName", e.target.value)} style={inputSt()} /></div>
+                  <div>
+                    <FL>Type</FL>
+                    <select value={edits.eventType} onChange={e => onEdit("eventType", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
+                      {["stress","exercise","alcohol","illness","sleep","travel","fasting","medication","other"].map(t => (
+                        <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div><FL>Start (HH:MM)</FL><input type="text" value={edits.eventTime} onChange={e => onEdit("eventTime", e.target.value)} style={inputSt()} /></div>
+                  <div><FL>End (HH:MM)</FL><input type="text" value={edits.eventEndTime} onChange={e => onEdit("eventEndTime", e.target.value)} style={inputSt()} /></div>
+                </div>
+                <div>
+                  <FL>Intensity</FL>
+                  <select value={edits.eventIntensity} onChange={e => onEdit("eventIntensity", e.target.value)} style={{ ...inputSt("160px"), appearance: "none" as const }}>
+                    <option value="">Not specified</option>
+                    <option value="low">Low</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
               </div>
             )}
 
