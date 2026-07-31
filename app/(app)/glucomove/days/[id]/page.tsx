@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import Link from "next/link";
-import { getDayWithMealsAndMetrics } from "@/lib/glucomove-queries";
+import { getDayWithMealsAndMetrics, getEventsForDate, getReadingsForDate } from "@/lib/glucomove-queries";
 import { colors } from "@/lib/tokens";
 import {
   mmol, mmolDiff,
@@ -8,6 +9,19 @@ import {
 } from "@/lib/glucomove-calcs";
 import DayRecordEditor from "./DayRecordEditor";
 import DayActions from "./DayActions";
+import DayGlucoseChart from "../../DayGlucoseChart";
+import DayReadingsList from "../../DayReadingsList";
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  stress: "Stress", exercise: "Exercise", alcohol: "Alcohol",
+  illness: "Illness", sleep: "Sleep", travel: "Travel",
+  fasting: "Fasting", medication: "Medication", other: "Other",
+};
+const EVENT_TYPE_COLOR: Record<string, string> = {
+  stress: "#B5522A", exercise: "#5C8A6A", alcohol: "#6E3D8C",
+  illness: "#B5522A", sleep: "#2E547A", travel: "#A8882A",
+  fasting: "#8A8178", medication: "#2E547A", other: "#8A8178",
+};
 
 export default async function DayDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +29,28 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
   if (!data) return <div style={{ padding: "40px 64px", color: colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "14px" }}>Day record not found.</div>;
 
   const { day, meals } = data;
+
+  const [events, readings] = await Promise.all([
+    getEventsForDate(day.date, day.user_id),
+    getReadingsForDate(day.date, day.user_id),
+  ]);
+
+  type TimelineItem =
+    | { kind: "meal"; data: (typeof meals)[number] }
+    | { kind: "event"; data: (typeof events)[number] };
+
+  const timeline: TimelineItem[] = [
+    ...meals.map(m => ({ kind: "meal" as const, data: m })),
+    ...events.map(e => ({ kind: "event" as const, data: e })),
+  ].sort((a, b) => {
+    const ta = a.kind === "meal"
+      ? new Date(a.data.meal.meal_start_time).getTime()
+      : new Date(a.data.start_time).getTime();
+    const tb = b.kind === "meal"
+      ? new Date(b.data.meal.meal_start_time).getTime()
+      : new Date(b.data.start_time).getTime();
+    return ta - tb;
+  });
 
   // Derived day metrics
   const validSpikes = meals.map(m => m.metrics.spikeMmol).filter((v): v is number => v !== null);
@@ -46,7 +82,10 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
       {/* Glucose metrics */}
       <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px" }}>
         <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
-          <Stat label="Waking glucose" value={mmol(day.waking_glucose_mmol)} />
+          {day.waking_glucose_mmol != null
+            ? <Stat label="Waking glucose" value={mmol(day.waking_glucose_mmol)} />
+            : <Stat label="Waking glucose" value="—" muted />
+          }
           {day.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(day.overnight_avg_mmol)} />}
           {day.daily_avg_mmol && <Stat label="Daily avg" value={mmol(day.daily_avg_mmol)} />}
           {day.time_in_range_pct != null && <Stat label="Time in Range" value={`${day.time_in_range_pct}%`} />}
@@ -62,6 +101,16 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
           </p>
         )}
       </div>
+
+      {/* Glucose chart */}
+      {readings.length >= 2 && (
+        <>
+          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "10px" }}>
+            Glucose movement
+          </p>
+          <DayGlucoseChart readings={readings} meals={meals.map(m => m.meal)} events={events} />
+        </>
+      )}
 
       {/* Edit day record form */}
       <DayRecordEditor day={day} />
@@ -103,9 +152,9 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
               { label: "Moderate", count: modCount,  color: "#A8882A" },
               { label: "High",     count: highCount, color: "#A03828" },
             ].map(({ label, count, color }, i) => (
-              <>
-                {i > 0 && <span key={`sep-${label}`} style={{ color: colors.border, fontSize: "14px", userSelect: "none" }}>·</span>}
-                <span key={label} style={{ display: "inline-flex", alignItems: "baseline", gap: "4px" }}>
+              <Fragment key={label}>
+                {i > 0 && <span style={{ color: colors.border, fontSize: "14px", userSelect: "none" }}>·</span>}
+                <span style={{ display: "inline-flex", alignItems: "baseline", gap: "4px" }}>
                   <span style={{ fontFamily: "var(--font-outfit)", fontSize: "14px", fontWeight: 600, color: count > 0 ? color : colors.inkMuted }}>
                     {count}
                   </span>
@@ -113,7 +162,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
                     {label.toLowerCase()}
                   </span>
                 </span>
-              </>
+              </Fragment>
             ))}
             {hasAlcohol && (
               <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginLeft: "auto" }}>
@@ -124,71 +173,110 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
         </div>
       )}
 
-      {/* Meals list */}
+      {/* Activity */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
         <p style={{ fontFamily: "var(--font-outfit)", fontSize: "13px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
-          Meals
+          Activity
         </p>
-        <Link href={`/glucomove/meals/new?date=${day.date}`} style={{ textDecoration: "none" }}>
-          <button style={{ padding: "6px 14px", backgroundColor: colors.ink, color: colors.background, border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-            + Add meal
-          </button>
-        </Link>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Link href={`/glucomove/events/new?date=${day.date}`} style={{ textDecoration: "none" }}>
+            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
+              + Event
+            </button>
+          </Link>
+          <Link href={`/glucomove/meals/new?date=${day.date}`} style={{ textDecoration: "none" }}>
+            <button style={{ padding: "6px 14px", backgroundColor: colors.ink, color: colors.background, border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
+              + Meal
+            </button>
+          </Link>
+        </div>
       </div>
 
-      {meals.length === 0 ? (
-        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>No meals logged for this day.</p>
+      {timeline.length === 0 ? (
+        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted }}>No meals or events logged for this day.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {meals.map(({ meal, metrics }) => (
-            <Link key={meal.id} href={`/glucomove/meals/${meal.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background }}>
-                <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                  <span style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, minWidth: "72px" }}>
-                    {new Date(meal.meal_start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <div>
-                    <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink }}>{meal.name}</p>
-                    <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginTop: "2px" }}>
-                      {MEAL_TYPE_LABEL[meal.meal_type]} · {PRIMARY_CARB_LABEL[meal.primary_carb_source]} · {CARB_PROMINENCE_LABEL[meal.carb_prominence]}
-                    </p>
+          {timeline.map(item => {
+            if (item.kind === "meal") {
+              const { meal, metrics } = item.data;
+              return (
+                <Link key={`meal-${meal.id}`} href={`/glucomove/meals/${meal.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <div style={{ border: `1px solid ${colors.border}`, borderLeft: "3px solid #A8882A", borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background }}>
+                    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                      <span style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, minWidth: "72px" }}>
+                        {new Date(meal.meal_start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}
+                      </span>
+                      <div>
+                        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink }}>{meal.name}</p>
+                        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginTop: "2px" }}>
+                          {MEAL_TYPE_LABEL[meal.meal_type]} · {PRIMARY_CARB_LABEL[meal.primary_carb_source]} · {CARB_PROMINENCE_LABEL[meal.carb_prominence]}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                      {metrics.spikeMmol !== null ? (
+                        <div style={{ textAlign: "right" }}>
+                          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "16px", fontWeight: 600, color: metrics.responseBand ? RESPONSE_BAND_COLOR[metrics.responseBand] : colors.ink }}>
+                            {mmolDiff(metrics.spikeMmol)}
+                          </p>
+                          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: colors.inkMuted, marginTop: "2px" }}>
+                            {metrics.responseBand ? RESPONSE_BAND_LABEL[metrics.responseBand] : ""}
+                          </p>
+                        </div>
+                      ) : (
+                        <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                          {metrics.baselineGlucoseMmol !== null ? "No peak yet" : "No readings"}
+                        </p>
+                      )}
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={colors.inkMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 3l4 4-4 4" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  {metrics.spikeMmol !== null ? (
-                    <div style={{ textAlign: "right" }}>
-                      <p style={{ fontFamily: "var(--font-outfit)", fontSize: "16px", fontWeight: 600, color: metrics.responseBand ? RESPONSE_BAND_COLOR[metrics.responseBand] : colors.ink }}>
-                        {mmolDiff(metrics.spikeMmol)}
-                      </p>
-                      <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "11px", color: colors.inkMuted, marginTop: "2px" }}>
-                        {metrics.responseBand ? RESPONSE_BAND_LABEL[metrics.responseBand] : ""}
+                </Link>
+              );
+            }
+
+            const ev = item.data;
+            const evColor = EVENT_TYPE_COLOR[ev.event_type] ?? colors.inkMuted;
+            return (
+              <Link key={`event-${ev.id}`} href={`/glucomove/events/${ev.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${evColor}`, borderRadius: "6px", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background, cursor: "pointer" }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <span style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, minWidth: "72px", marginRight: "16px" }}>
+                      {new Date(ev.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}
+                      {ev.end_time && <span> – {new Date(ev.end_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}</span>}
+                    </span>
+                    <div>
+                      <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink }}>{ev.name}</p>
+                      <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", marginTop: "2px" }}>
+                        <span style={{ color: evColor, fontWeight: 500 }}>{EVENT_TYPE_LABEL[ev.event_type] ?? ev.event_type}</span>
+                        {ev.intensity && <span style={{ color: colors.inkMuted }}> · {ev.intensity}</span>}
                       </p>
                     </div>
-                  ) : (
-                    <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
-                      {metrics.baselineGlucoseMmol !== null ? "No peak yet" : "No readings"}
-                    </p>
-                  )}
+                  </div>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={colors.inkMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 3l4 4-4 4" />
                   </svg>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
+
+      <DayReadingsList readings={readings} meals={meals.map(m => m.meal)} />
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div>
       <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "4px" }}>
         {label}
       </p>
-      <p style={{ fontFamily: "var(--font-outfit)", fontSize: "16px", fontWeight: 600, color: colors.ink }}>
+      <p style={{ fontFamily: "var(--font-outfit)", fontSize: "16px", fontWeight: 600, color: muted ? colors.inkMuted : colors.ink }}>
         {value}
       </p>
     </div>
