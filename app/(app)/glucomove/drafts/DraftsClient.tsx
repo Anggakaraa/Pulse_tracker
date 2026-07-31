@@ -11,10 +11,11 @@ type Draft = Record<string, unknown>;
 interface DraftEdits {
   waking: string; overnight: string; daily: string; tir: string;
   mealName: string; mealDesc: string; mealType: string;
-  carbSource: string; carbProminence: string;
+  carbSource: string[]; carbProminence: string;
   acvBefore: boolean; structuredEating: boolean;
   movementAfter: boolean; movementMinutes: string;
   withAlcohol: boolean; cooledStarch: boolean;
+  fruitAfter: boolean; dessertAfter: boolean; addedSugar: boolean; largePortion: boolean; eatingOut: boolean;
   mealTime: string; fiberProminence: string; proteinProminence: string; fatProminence: string; fatBefore: boolean;
   glucoseMmol: string; readingTime: string;
   eventName: string; eventType: string; eventTime: string; eventEndTime: string; eventIntensity: string;
@@ -30,7 +31,7 @@ function initEdits(draft: Draft): DraftEdits {
     mealName: String(p.name ?? ""),
     mealDesc: String(p.description ?? ""),
     mealType: String(p.meal_type ?? "other"),
-    carbSource: String(p.primary_carb_source ?? "other"),
+    carbSource: Array.isArray(p.primary_carb_source) ? (p.primary_carb_source as string[]) : (p.primary_carb_source ? [String(p.primary_carb_source)] : ["other"]),
     carbProminence: String(p.carb_prominence ?? "moderate"),
     acvBefore: Boolean(p.acv_before),
     structuredEating: Boolean(p.structured_eating),
@@ -38,6 +39,11 @@ function initEdits(draft: Draft): DraftEdits {
     movementMinutes: String(p.movement_duration_minutes ?? ""),
     withAlcohol: Boolean(p.with_alcohol),
     cooledStarch: Boolean(p.cooled_starch),
+    fruitAfter: Boolean(p.fruit_after),
+    dessertAfter: Boolean(p.dessert_after),
+    addedSugar: Boolean(p.added_sugar),
+    largePortion: Boolean(p.large_portion),
+    eatingOut: Boolean(p.eating_out),
     mealTime: String(p.time ?? ""),
     fiberProminence: String(p.fiber_prominence ?? "low"),
     proteinProminence: String(p.protein_prominence ?? "moderate"),
@@ -87,7 +93,7 @@ async function approveOne(
       day_record_id: null, user_id: userId,
       meal_start_time: ts, meal_type: e.mealType,
       name: e.mealName, description: e.mealDesc || e.mealName,
-      primary_carb_source: e.carbSource, carb_prominence: e.carbProminence,
+      primary_carb_source: e.carbSource.length > 0 ? e.carbSource : ["none"], carb_prominence: e.carbProminence,
       fiber_prominence: e.fiberProminence || "low",
       protein_prominence: e.proteinProminence || "moderate",
       fat_prominence: e.fatProminence || "moderate",
@@ -96,6 +102,8 @@ async function approveOne(
       movement_after: e.movementAfter,
       movement_duration_minutes: e.movementAfter && e.movementMinutes ? parseInt(e.movementMinutes) : null,
       with_alcohol: e.withAlcohol, cooled_starch: e.cooledStarch,
+      fruit_after: e.fruitAfter, dessert_after: e.dessertAfter,
+      added_sugar: e.addedSugar, large_portion: e.largePortion, eating_out: e.eatingOut,
     });
     return error?.message ?? null;
   }
@@ -256,11 +264,18 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
                   <div><FL>Time (HH:MM)</FL><input type="text" value={edits.mealTime} onChange={e => onEdit("mealTime", e.target.value)} style={inputSt()} /></div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <div>
-                    <FL>Primary carb</FL>
-                    <select value={edits.carbSource} onChange={e => onEdit("carbSource", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
-                      {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <FL>Primary carb (select all that apply)</FL>
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "6px", marginTop: "4px" }}>
+                      {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => {
+                        const active = edits.carbSource.includes(v);
+                        return (
+                          <button key={v} type="button" onClick={() => onEdit("carbSource", active ? edits.carbSource.filter(x => x !== v) : [...edits.carbSource, v])} style={{ padding: "4px 10px", borderRadius: "4px", border: `1px solid ${active ? colors.ink : colors.border}`, backgroundColor: active ? colors.ink : "transparent", color: active ? colors.background : colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+                            {l}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <FL>Fiber content</FL>
@@ -300,6 +315,11 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
                     ["movementAfter", "Movement after"],
                     ["withAlcohol", "Alcohol"],
                     ["cooledStarch", "Cooled starch"],
+                    ["fruitAfter", "Fruit after"],
+                    ["dessertAfter", "Dessert after"],
+                    ["addedSugar", "Added sugar"],
+                    ["largePortion", "Large portion"],
+                    ["eatingOut", "Eating out"],
                   ] as [keyof DraftEdits, string][]).map(([key, label]) => (
                     <label key={key as string} style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
                       <input type="checkbox" checked={Boolean(edits[key])} onChange={e => onEdit(key, e.target.checked as DraftEdits[typeof key])} style={{ accentColor: colors.ink }} />

@@ -67,7 +67,7 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "16px 20px" }}>
           <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "12px" }}>Carb profile</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Row label="Primary source" value={PRIMARY_CARB_LABEL[meal.primary_carb_source]} />
+            <Row label="Primary source" value={(Array.isArray(meal.primary_carb_source) ? meal.primary_carb_source : [meal.primary_carb_source]).map((s: string) => PRIMARY_CARB_LABEL[s] ?? s).join(', ') || "—"} />
             <Row label="Carb prominence" value={CARB_PROMINENCE_LABEL[meal.carb_prominence]} />
             <Row label="Fiber content" value={meal.fiber_prominence ? FIBER_PROMINENCE_LABEL[meal.fiber_prominence] : "—"} />
             <Row label="Protein content" value={meal.protein_prominence ? PROTEIN_PROMINENCE_LABEL[meal.protein_prominence] : "—"} />

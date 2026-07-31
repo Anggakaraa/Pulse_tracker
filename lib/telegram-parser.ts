@@ -34,7 +34,7 @@ Example — "TIR 82": [{"type":"day_record","date":"${dateStr}","waking_glucose_
 Example — "31 Jul: waking 4.9 overnight 4.3, 30 Jul: avg 4.3 TIR 86": [{"type":"day_record","date":"2026-07-31","waking_glucose_mmol":4.9,"overnight_avg_mmol":4.3,"daily_avg_mmol":null,"time_in_range_pct":null,"notes":null},{"type":"day_record","date":"2026-07-30","waking_glucose_mmol":null,"overnight_avg_mmol":null,"daily_avg_mmol":4.3,"time_in_range_pct":86,"notes":null}]
 
 TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack, makan) or lists food items with meal context
-[{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"fruit_after":false,"dessert_after":false,"added_sugar":false,"large_portion":false,"eating_out":false,"notes":null}]
+[{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":["white_rice"],"carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"fruit_after":false,"dessert_after":false,"added_sugar":false,"large_portion":false,"eating_out":false,"notes":null}]
 
 IMPORTANT: If the user explicitly states prominence levels (e.g. "high protein", "low carb", "high fiber", "high fat"), use those values directly — do not override with your own inference from food items.
 
@@ -49,7 +49,8 @@ low=minimal fat (plain rice, bread, fruit, steamed veg) | moderate=some fat (sti
 
 fat_before: true ONLY if the message explicitly mentions taking olive oil, butter, nuts, avocado, or another fat source as a deliberate pre-meal buffer before starting to eat (not just fat as part of the meal)
 
-primary_carb_source must be one of: none, white_rice, red_brown_rice, bread, fibrous_bread, pasta, wholewheat_pasta, noodles_flour, sugar_dessert, quinoa, cauliflower_rice, other
+primary_carb_source is an ARRAY of carb sources (can be more than one). Each element must be one of: none, white_rice, red_brown_rice, bread, fibrous_bread, pasta, wholewheat_pasta, noodles_flour, sugar_dessert, quinoa, cauliflower_rice, other
+Use ["none"] when there are no meaningful carbs. Use multiple values when the meal has multiple distinct carb sources (e.g. rice and bread → ["white_rice","bread"]). Never mix "none" with other values.
 Mappings: nasi putih/white rice→white_rice | nasi merah/hitam/brown/black rice→red_brown_rice | mie/bihun/kwetiau/noodles→noodles_flour | spaghetti/pasta→pasta | wholegrain pasta→wholewheat_pasta | roti biasa→bread | roti gandum/wholemeal→fibrous_bread | kue/dessert/sweet→sugar_dessert | no carbs→none
 
 carb_prominence: none=no carbs | supporting=small side component | moderate=balanced part of meal | hero=dominant/carb-heavy

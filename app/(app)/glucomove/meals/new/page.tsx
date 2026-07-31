@@ -92,7 +92,7 @@ function NewMealPageInner() {
   const [mealType, setMealType] = useState("lunch");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [primaryCarb, setPrimaryCarb] = useState("none");
+  const [primaryCarb, setPrimaryCarb] = useState<string[]>([]);
   const [carbProminence, setCarbProminence] = useState("none");
   const [fiberProminence, setFiberProminence] = useState("low");
   const [proteinProminence, setProteinProminence] = useState("moderate");
@@ -134,7 +134,7 @@ function NewMealPageInner() {
         meal_type: mealType,
         name: name.trim(),
         description: description.trim(),
-        primary_carb_source: primaryCarb,
+        primary_carb_source: primaryCarb.length > 0 ? primaryCarb : ["none"],
         carb_prominence: carbProminence,
         fiber_prominence: fiberProminence,
         protein_prominence: proteinProminence,
@@ -214,9 +214,19 @@ function NewMealPageInner() {
 
         <div>
           <FieldLabel required>Primary carbohydrate source</FieldLabel>
-          <select value={primaryCarb} onChange={e => setPrimaryCarb(e.target.value)} style={selectStyle()}>
-            {CARB_SOURCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {CARB_SOURCES.map(([v, l]) => {
+              const active = primaryCarb.includes(v);
+              return (
+                <button key={v} type="button" onClick={() => setPrimaryCarb(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])} style={{ padding: "7px 14px", borderRadius: "4px", border: `1px solid ${active ? colors.ink : colors.border}`, backgroundColor: active ? colors.ink : "transparent", color: active ? colors.background : colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer", transition: "all 150ms cubic-bezier(0.4,0,0.2,1)" }}>
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginTop: "6px" }}>
+            Select all that apply — tap again to deselect.
+          </p>
         </div>
 
         <div>

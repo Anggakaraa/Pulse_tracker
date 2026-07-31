@@ -209,7 +209,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
                       <div>
                         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink }}>{meal.name}</p>
                         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, marginTop: "2px" }}>
-                          {MEAL_TYPE_LABEL[meal.meal_type]} · {PRIMARY_CARB_LABEL[meal.primary_carb_source]} · {CARB_PROMINENCE_LABEL[meal.carb_prominence]}
+                          {MEAL_TYPE_LABEL[meal.meal_type]} · {(Array.isArray(meal.primary_carb_source) ? meal.primary_carb_source : [meal.primary_carb_source]).map((s: string) => PRIMARY_CARB_LABEL[s] ?? s).join(', ')} · {CARB_PROMINENCE_LABEL[meal.carb_prominence]}
                         </p>
                       </div>
                     </div>

@@ -52,7 +52,7 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
   const [mealName, setMealName] = useState(String(parsed.name ?? ""));
   const [mealDesc, setMealDesc] = useState(String(parsed.description ?? ""));
   const [mealType, setMealType] = useState(String(parsed.meal_type ?? "other"));
-  const [carbSource, setCarbSource] = useState(String(parsed.primary_carb_source ?? "other"));
+  const [carbSource, setCarbSource] = useState<string[]>(Array.isArray(parsed.primary_carb_source) ? (parsed.primary_carb_source as string[]) : (parsed.primary_carb_source ? [String(parsed.primary_carb_source)] : ["other"]));
   const [carbProminence, setCarbProminence] = useState(String(parsed.carb_prominence ?? "moderate"));
   const [acvBefore, setAcvBefore] = useState(Boolean(parsed.acv_before));
   const [structuredEating, setStructuredEating] = useState(Boolean(parsed.structured_eating));
@@ -112,7 +112,7 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
       meal_type: mealType,
       name: mealName,
       description: mealDesc || mealName,
-      primary_carb_source: carbSource,
+      primary_carb_source: carbSource.length > 0 ? carbSource : ["none"],
       carb_prominence: carbProminence,
       acv_before: acvBefore,
       structured_eating: structuredEating,
@@ -218,10 +218,17 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
                 </div>
                 <Field label="Description"><textarea value={mealDesc} onChange={e => setMealDesc(e.target.value)} rows={2} style={{ ...inputStyle(), resize: "vertical" as const }} /></Field>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <Field label="Primary carb">
-                    <select value={carbSource} onChange={e => setCarbSource(e.target.value)} style={{ ...inputStyle(), appearance: "none" as const }}>
-                      {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
+                  <Field label="Primary carb (select all that apply)">
+                    <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "6px", marginTop: "4px" }}>
+                      {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => {
+                        const active = carbSource.includes(v);
+                        return (
+                          <button key={v} type="button" onClick={() => setCarbSource(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])} style={{ padding: "4px 10px", borderRadius: "4px", border: `1px solid ${active ? colors.ink : colors.border}`, backgroundColor: active ? colors.ink : "transparent", color: active ? colors.background : colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+                            {l}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </Field>
                   <Field label="Carb prominence">
                     <select value={carbProminence} onChange={e => setCarbProminence(e.target.value)} style={{ ...inputStyle(), appearance: "none" as const }}>
@@ -254,7 +261,7 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                 <Field label="Name"><Val>{mealName || "—"}</Val></Field>
                 <Field label="Type"><Val>{MEAL_TYPE_LABEL[mealType] ?? mealType}</Val></Field>
-                <Field label="Primary carb"><Val>{PRIMARY_CARB_LABEL[carbSource] ?? carbSource}</Val></Field>
+                <Field label="Primary carb"><Val>{carbSource.map(s => PRIMARY_CARB_LABEL[s] ?? s).join(', ') || "—"}</Val></Field>
                 <Field label="Carb prominence"><Val>{CARB_PROMINENCE_LABEL[carbProminence] ?? carbProminence}</Val></Field>
                 {(acvBefore || structuredEating || movementAfter || withAlcohol || cooledStarch) && (
                   <div style={{ gridColumn: "1 / -1" }}>
