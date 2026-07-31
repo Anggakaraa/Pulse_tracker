@@ -36,6 +36,8 @@ Example — "31 Jul: waking 4.9 overnight 4.3, 30 Jul: avg 4.3 TIR 86": [{"type"
 TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack, makan) or lists food items with meal context
 [{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"notes":null}]
 
+IMPORTANT: If the user explicitly states prominence levels (e.g. "high protein", "low carb", "high fiber", "high fat"), use those values directly — do not override with your own inference from food items.
+
 fiber_prominence: how much fiber is present in the meal overall
 low=minimal veg, mostly refined carbs (e.g. plain white rice, white bread, plain pasta) | moderate=some veg/beans/greens alongside carbs (e.g. rice with a side of veg, soup with mixed ingredients) | high=fiber-rich meal (e.g. salad, lots of vegetables, legume-heavy, stir-fry with substantial greens)
 
