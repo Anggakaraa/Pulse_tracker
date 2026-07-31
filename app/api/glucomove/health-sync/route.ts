@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServiceClient } from "@/lib/supabase-service";
 
+const MONTHS: Record<string, string> = {
+  jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",
+  jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12",
+};
+
+// Handles ISO strings and Shortcuts locale format: "31 Jul 2026 at 12.53"
+function parseShortcutsDate(ts: string): Date | null {
+  // Try ISO first
+  const iso = new Date(ts);
+  if (!isNaN(iso.getTime())) return iso;
+
+  // Shortcuts format: "DD Mon YYYY at HH.MM"
+  const m = ts.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})\s+at\s+(\d{1,2})\.(\d{2})/i);
+  if (m) {
+    const [, day, mon, year, hour, min] = m;
+    const mo = MONTHS[mon.toLowerCase()];
+    if (!mo) return null;
+    // Treat as WIB (UTC+7)
+    return new Date(`${year}-${mo}-${day.padStart(2,"0")}T${hour.padStart(2,"0")}:${min}:00+07:00`);
+  }
+  return null;
+}
+
 // Accepts batch:  { readings: [{ timestamp, glucose_mmol }] }
 // OR single:      { timestamp, glucose_mmol }
 // Authorization: Bearer <HEALTH_SYNC_SECRET>
@@ -45,16 +68,19 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < rawReadings.length; i++) {
     const r = rawReadings[i] as RawReading;
     const ts = typeof r.timestamp === "string" ? r.timestamp : null;
-    const gl = typeof r.glucose_mmol === "number" ? r.glucose_mmol : null;
+    const gl = typeof r.glucose_mmol === "number"
+      ? r.glucose_mmol
+      : typeof r.glucose_mmol === "string" ? parseFloat(r.glucose_mmol as string) : null;
 
-    if (!ts || !gl || isNaN(new Date(ts).getTime())) {
+    const parsedDate = ts ? parseShortcutsDate(ts) : null;
+    if (!ts || !gl || gl === 0 || isNaN(gl) || !parsedDate) {
       invalid.push(i);
       continue;
     }
 
     rows.push({
       user_id: userId,
-      timestamp: new Date(ts).toISOString(),
+      timestamp: parsedDate.toISOString(),
       glucose_mmol: Math.round(gl * 100) / 100,
       is_baseline: r.is_baseline === true,
       meal_id: null,
