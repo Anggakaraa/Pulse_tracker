@@ -54,6 +54,18 @@ export default async function DateViewPage({ params }: { params: Promise<{ date:
     meals.map(meal => getMealWithReadings(meal.id))
   );
 
+  // Compute overnight avg (midnight–6am WIB) and daily avg from readings
+  function toWIBHour(ts: string): number {
+    return new Date(new Date(ts).getTime() + 7 * 3600000).getUTCHours();
+  }
+  const overnightReadings = readings.filter(r => toWIBHour(r.timestamp) < 6);
+  const overnightAvg = overnightReadings.length > 0
+    ? overnightReadings.reduce((s, r) => s + r.glucose_mmol, 0) / overnightReadings.length
+    : null;
+  const dailyAvg = readings.length > 0
+    ? readings.reduce((s, r) => s + r.glucose_mmol, 0) / readings.length
+    : null;
+
   type TimelineItem =
     | { kind: "meal"; data: NonNullable<(typeof mealsWithMetrics)[number]> }
     | { kind: "event"; data: (typeof events)[number] };
@@ -102,27 +114,23 @@ export default async function DateViewPage({ params }: { params: Promise<{ date:
         )}
       </div>
 
-      {/* Day record strip (if any) */}
-      {dayRecord ? (
+      {/* Day stats strip */}
+      {(dayRecord || overnightAvg != null || dailyAvg != null) ? (
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px", display: "flex", gap: "40px" }}>
-          {dayRecord.waking_glucose_mmol != null && (
-            <Stat label="Waking glucose" value={mmol(dayRecord.waking_glucose_mmol)} />
-          )}
-          {dayRecord.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(dayRecord.overnight_avg_mmol)} />}
-          {dayRecord.daily_avg_mmol && <Stat label="Daily avg" value={mmol(dayRecord.daily_avg_mmol)} />}
+          {dayRecord?.waking_glucose_mmol != null
+            ? <Stat label="Waking glucose" value={mmol(dayRecord.waking_glucose_mmol)} />
+            : <Stat label="Waking glucose" value="—" muted />
+          }
+          {overnightAvg != null
+            ? <Stat label="Overnight avg" value={mmol(overnightAvg)} />
+            : <Stat label="Overnight avg" value="—" muted />
+          }
+          {dailyAvg != null
+            ? <Stat label="Daily avg" value={mmol(dailyAvg)} />
+            : <Stat label="Daily avg" value="—" muted />
+          }
         </div>
-      ) : (
-        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "14px 20px", marginBottom: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-            No day record for this date.
-          </p>
-          <Link href={`/glucomove/days/new?date=${date}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              Log day record
-            </button>
-          </Link>
-        </div>
-      )}
+      ) : null}
 
       {/* Glucose chart */}
       {readings.length >= 2 && (
@@ -238,11 +246,11 @@ export default async function DateViewPage({ params }: { params: Promise<{ date:
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div>
       <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "4px" }}>{label}</p>
-      <p style={{ fontFamily: "var(--font-outfit)", fontSize: "20px", fontWeight: 600, color: colors.ink, letterSpacing: "-0.01em" }}>{value}</p>
+      <p style={{ fontFamily: "var(--font-outfit)", fontSize: "20px", fontWeight: 600, color: muted ? colors.inkMuted : colors.ink, letterSpacing: "-0.01em" }}>{value}</p>
     </div>
   );
 }

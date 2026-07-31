@@ -44,10 +44,46 @@ export async function POST(req: NextRequest) {
   const text: string = msg.text;
   const sentAt = new Date(msg.date * 1000);
 
+  const supabase = createSupabaseServiceClient();
+  const userId = process.env.GLUCOMOVE_USER_ID!;
+
+  // Wake-up shortcut — detect before calling the parser
+  if (/\b(wake\s*up|woke\s*up|good\s*morning|bangun|pagi)\b/i.test(text)) {
+    const windowMs = 15 * 60 * 1000;
+    const from = new Date(sentAt.getTime() - windowMs).toISOString();
+    const to   = new Date(sentAt.getTime() + windowMs).toISOString();
+
+    const { data: nearby } = await supabase
+      .from("glucomove_readings")
+      .select("timestamp, glucose_mmol")
+      .eq("user_id", userId)
+      .gte("timestamp", from)
+      .lte("timestamp", to)
+      .order("timestamp", { ascending: true });
+
+    if (!nearby || nearby.length === 0) {
+      await sendMessage(chatId, "👋 Good morning! No glucose reading found within 15 min — check your CGM.");
+      return NextResponse.json({ ok: true });
+    }
+
+    // Pick the reading closest to sentAt
+    const closest = nearby.reduce((best, r) =>
+      Math.abs(new Date(r.timestamp).getTime() - sentAt.getTime()) <
+      Math.abs(new Date(best.timestamp).getTime() - sentAt.getTime()) ? r : best
+    );
+
+    const date = sentAt.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+    await supabase.from("glucomove_day_records").upsert(
+      { user_id: userId, date, waking_glucose_mmol: closest.glucose_mmol },
+      { onConflict: "user_id,date", ignoreDuplicates: false }
+    );
+
+    await sendMessage(chatId, `👋 Good morning! Waking glucose: ${closest.glucose_mmol.toFixed(1)} mmol/L`);
+    return NextResponse.json({ ok: true });
+  }
+
   // Send immediate ack so Telegram doesn't retry while we process
   void sendMessage(chatId, "⏳ Processing…");
-
-  const supabase = createSupabaseServiceClient();
 
   try {
     console.log("Parsing message:", text);

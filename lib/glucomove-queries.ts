@@ -80,8 +80,8 @@ async function getReadingsForMeal(
   mealStartTime: string
 ) {
   const mealMs = new Date(mealStartTime).getTime();
-  const windowStart = new Date(mealMs - 15 * 60 * 1000).toISOString();
-  const windowEnd   = new Date(mealMs + 120 * 60 * 1000).toISOString();
+  const windowStart = new Date(mealMs - 30 * 60 * 1000).toISOString();
+  const windowEnd   = new Date(mealMs + 240 * 60 * 1000).toISOString();
 
   const [{ data: attached }, { data: floating }] = await Promise.all([
     supabase
@@ -220,6 +220,31 @@ export async function getEventById(id: string) {
     .eq("id", id)
     .single();
   return data;
+}
+
+export async function getEventWithReadings(eventId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: event } = await supabase
+    .from("glucomove_events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+  if (!event) return null;
+
+  const startMs = new Date(event.start_time).getTime();
+  const endMs = event.end_time ? new Date(event.end_time).getTime() : startMs;
+  const windowStart = new Date(startMs - 30 * 60 * 1000).toISOString();
+  const windowEnd   = new Date(endMs + 240 * 60 * 1000).toISOString();
+
+  const { data: readings } = await supabase
+    .from("glucomove_readings")
+    .select("*")
+    .eq("user_id", event.user_id)
+    .gte("timestamp", windowStart)
+    .lte("timestamp", windowEnd)
+    .order("timestamp", { ascending: true });
+
+  return { event, readings: readings ?? [] };
 }
 
 // Events for a given date (keyed by start_time in WIB window)

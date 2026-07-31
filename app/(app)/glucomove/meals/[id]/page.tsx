@@ -7,7 +7,7 @@ import {
   FIBER_PROMINENCE_LABEL, PROTEIN_PROMINENCE_LABEL, FAT_PROMINENCE_LABEL,
   RESPONSE_BAND_LABEL, RESPONSE_BAND_COLOR, RESPONSE_SHAPE_LABEL,
 } from "@/lib/glucomove-calcs";
-import ReadingPanel from "./ReadingPanel";
+import MealObservationPanel from "./MealObservationPanel";
 import MealActions from "./MealActions";
 
 export default async function MealDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -116,22 +116,14 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               <Row label="Peak" value={mmol(metrics.peakGlucoseMmol)} />
               <Row label="Movement" value={mmolDiff(metrics.spikeMmol)} />
               <Row label="Time to peak" value={metrics.timeToPeakMinutes !== null ? `${metrics.timeToPeakMinutes} min` : "—"} />
-              <Row label="Final reading" value={mmol(metrics.finalGlucoseMmol)} />
-              <Row label="Final vs baseline" value={mmolDiff(metrics.finalDiffFromBaselineMmol)} />
-              <Row label="Observation" value={metrics.observationDurationMinutes !== null ? `${metrics.observationDurationMinutes} min` : "—"} />
-              <Row label="Near baseline in" value={metrics.returnToBaselineMinutes !== null ? `${metrics.returnToBaselineMinutes} min` : "Not observed"} />
               <Row label="Post-peak low" value={mmol(metrics.postPeakLowMmol)} />
-            </div>
-
-            <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: `1px solid ${colors.border}` }}>
-              <Row label="Response shape" value={RESPONSE_SHAPE_LABEL[metrics.responseShape]} />
             </div>
           </>
         )}
       </div>
 
-      {/* Readings */}
-      <ReadingPanel mealId={meal.id} readings={readings} mealStartTime={meal.meal_start_time} />
+      {/* Glucose curve + observation window */}
+      <MealObservationPanel readings={readings} mealStartTime={meal.meal_start_time} />
 
       {/* Notes */}
       {meal.notes && (

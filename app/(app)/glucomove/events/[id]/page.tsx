@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { getEventById } from "@/lib/glucomove-queries";
+import { getEventWithReadings } from "@/lib/glucomove-queries";
 import { colors } from "@/lib/tokens";
 import EventEditor from "./EventEditor";
+import EventObservationPanel from "./EventObservationPanel";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   stress: "Stress", exercise: "Exercise", alcohol: "Alcohol",
@@ -27,11 +28,12 @@ function fmtTime(utcTs: string): string {
 
 export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = await getEventById(id);
-  if (!event) {
+  const result = await getEventWithReadings(id);
+  if (!result) {
     return <div style={{ padding: "40px 64px", color: colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "14px" }}>Event not found.</div>;
   }
 
+  const { event, readings } = result;
   const eventDate = toWIBDate(event.start_time);
   const evColor = EVENT_TYPE_COLOR[event.event_type] ?? colors.inkMuted;
 
@@ -61,7 +63,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       </h1>
 
       {/* Details card */}
-      <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${evColor}`, borderRadius: "6px", padding: "20px 24px" }}>
+      <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${evColor}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px" }}>
         <div style={{ display: "flex", gap: "40px", flexWrap: "wrap" }}>
           <Field label="Type" value={EVENT_TYPE_LABEL[event.event_type] ?? event.event_type} />
           <Field label="Start" value={fmtTime(event.start_time)} />
@@ -74,6 +76,14 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           </p>
         )}
       </div>
+
+      {/* Glucose curve */}
+      <EventObservationPanel
+        readings={readings}
+        startTime={event.start_time}
+        endTime={event.end_time ?? null}
+        eventColor={evColor}
+      />
     </div>
   );
 }
