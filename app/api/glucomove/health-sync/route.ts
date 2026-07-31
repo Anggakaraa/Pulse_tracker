@@ -63,7 +63,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (rows.length === 0) {
-    return NextResponse.json({ error: "No valid readings", invalid }, { status: 400 });
+    const sample = rawReadings[0] as RawReading;
+    return NextResponse.json({
+      error: "No valid readings",
+      invalid,
+      debug: { timestampType: typeof sample?.timestamp, timestampValue: String(sample?.timestamp).slice(0, 50), glucoseType: typeof sample?.glucose_mmol, glucoseValue: sample?.glucose_mmol }
+    }, { status: 400 });
   }
 
   // 4. Upsert — ON CONFLICT (user_id, timestamp) DO NOTHING
