@@ -116,6 +116,11 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               <Row label="Peak" value={mmol(metrics.peakGlucoseMmol)} />
               <Row label="Movement" value={mmolDiff(metrics.spikeMmol)} />
               <Row label="Time to peak" value={metrics.timeToPeakMinutes !== null ? `${metrics.timeToPeakMinutes} min` : "—"} />
+              <Row label="Recovery time" value={
+                metrics.timeToPeakMinutes !== null && metrics.returnToBaselineMinutes !== null
+                  ? `${metrics.returnToBaselineMinutes - metrics.timeToPeakMinutes} min`
+                  : "Not yet"
+              } />
               <Row label="Post-peak low" value={mmol(metrics.postPeakLowMmol)} />
             </div>
           </>
