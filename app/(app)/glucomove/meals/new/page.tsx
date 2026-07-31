@@ -109,6 +109,9 @@ function NewMealPageInner() {
   const [cooledStarch, setCooledStarch] = useState(false);
   const [fruitAfter, setFruitAfter] = useState(false);
   const [dessertAfter, setDessertAfter] = useState(false);
+  const [addedSugar, setAddedSugar] = useState(false);
+  const [largePortion, setLargePortion] = useState(false);
+  const [eatingOut, setEatingOut] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -145,6 +148,9 @@ function NewMealPageInner() {
         cooled_starch: cooledStarch,
         fruit_after: fruitAfter,
         dessert_after: dessertAfter,
+        added_sugar: addedSugar,
+        large_portion: largePortion,
+        eating_out: eatingOut,
       })
       .select("id")
       .single();
@@ -306,6 +312,9 @@ function NewMealPageInner() {
           <Toggle label="Cooled starch" desc="Main starch was cooled before consumption (including cooled and reheated)" checked={cooledStarch} onChange={setCooledStarch} />
           <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
           <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
+          <Toggle label="Added sugar" desc="Dishes with sugar as a cooking ingredient — sweet marinades, glazes, sauces (not dessert)" checked={addedSugar} onChange={setAddedSugar} />
+          <Toggle label="Large portion" desc="Overall meal volume was larger than a normal serving" checked={largePortion} onChange={setLargePortion} />
+          <Toggle label="Eating out" desc="Restaurant, hawker, takeaway — preparation and ingredients unknown" checked={eatingOut} onChange={setEatingOut} />
         </div>
 
         <SectionHead>Baseline reading</SectionHead>

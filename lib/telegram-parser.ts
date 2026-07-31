@@ -34,7 +34,7 @@ Example — "TIR 82": [{"type":"day_record","date":"${dateStr}","waking_glucose_
 Example — "31 Jul: waking 4.9 overnight 4.3, 30 Jul: avg 4.3 TIR 86": [{"type":"day_record","date":"2026-07-31","waking_glucose_mmol":4.9,"overnight_avg_mmol":4.3,"daily_avg_mmol":null,"time_in_range_pct":null,"notes":null},{"type":"day_record","date":"2026-07-30","waking_glucose_mmol":null,"overnight_avg_mmol":null,"daily_avg_mmol":4.3,"time_in_range_pct":86,"notes":null}]
 
 TYPE 2 — meal: mentions a meal (lunch, dinner, breakfast, snack, makan) or lists food items with meal context
-[{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"fruit_after":false,"dessert_after":false,"notes":null}]
+[{"type":"meal","date":"${dateStr}","time":"HH:MM","meal_type":"lunch","name":"concise meal name","description":"full description of everything eaten","primary_carb_source":"white_rice","carb_prominence":"moderate","fiber_prominence":"low","protein_prominence":"moderate","fat_prominence":"moderate","fat_before":false,"acv_before":false,"structured_eating":false,"movement_after":false,"movement_duration_minutes":null,"with_alcohol":false,"cooled_starch":false,"fruit_after":false,"dessert_after":false,"added_sugar":false,"large_portion":false,"eating_out":false,"notes":null}]
 
 IMPORTANT: If the user explicitly states prominence levels (e.g. "high protein", "low carb", "high fiber", "high fat"), use those values directly — do not override with your own inference from food items.
 
@@ -62,6 +62,9 @@ with_alcohol: alcohol, wine, beer
 cooled_starch: cooled rice, cooled starch, reheated rice
 fruit_after: fruit eaten immediately after the meal (e.g. "had kiwi after", "ate fruit after lunch")
 dessert_after: dessert or sweet item eaten immediately after the meal (e.g. "had ice cream after", "dessert after dinner")
+added_sugar: dishes where sugar is a deliberate cooking ingredient — sweet marinades, glazes, sauces (e.g. galbi, teriyaki, sweet and sour, BBQ sauce). Not for desserts (use dessert_after) — for savoury dishes with hidden sugar in preparation.
+large_portion: overall meal volume was larger than a normal serving — mention of "a lot", "extra rice", "large portion", or the user flags it explicitly
+eating_out: meal was at a restaurant, hawker, food court, or takeaway — ingredients and preparation unknown
 
 TYPE 3 — glucose_reading: just a number or a short reading without meal context
 [{"type":"glucose_reading","date":"${dateStr}","time":"HH:MM","glucose_mmol":5.4,"is_fasting":false,"notes":null}]

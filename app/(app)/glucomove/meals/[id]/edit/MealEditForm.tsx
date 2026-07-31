@@ -93,6 +93,9 @@ interface MealData {
   cooled_starch: boolean;
   fruit_after: boolean;
   dessert_after: boolean;
+  added_sugar: boolean;
+  large_portion: boolean;
+  eating_out: boolean;
   fiber_prominence: string | null;
   protein_prominence: string | null;
   fat_prominence: string | null;
@@ -118,6 +121,9 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
   const [cooledStarch, setCooledStarch]       = useState(meal.cooled_starch);
   const [fruitAfter, setFruitAfter]           = useState(meal.fruit_after);
   const [dessertAfter, setDessertAfter]       = useState(meal.dessert_after);
+  const [addedSugar, setAddedSugar]           = useState(meal.added_sugar);
+  const [largePortion, setLargePortion]       = useState(meal.large_portion);
+  const [eatingOut, setEatingOut]             = useState(meal.eating_out);
   const [fiberProminence, setFiberProminence] = useState(meal.fiber_prominence ?? "low");
   const [proteinProminence, setProteinProminence] = useState(meal.protein_prominence ?? "moderate");
   const [fatProminence, setFatProminence]         = useState(meal.fat_prominence ?? "moderate");
@@ -151,6 +157,9 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
         cooled_starch: cooledStarch,
         fruit_after: fruitAfter,
         dessert_after: dessertAfter,
+        added_sugar: addedSugar,
+        large_portion: largePortion,
+        eating_out: eatingOut,
         fiber_prominence: fiberProminence,
         protein_prominence: proteinProminence,
         fat_prominence: fatProminence,
@@ -297,6 +306,9 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
         <Toggle label="Cooled starch" desc="Main starch was cooled before consumption (including cooled and reheated)" checked={cooledStarch} onChange={setCooledStarch} />
         <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
         <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
+        <Toggle label="Added sugar" desc="Dishes with sugar as a cooking ingredient — sweet marinades, glazes, sauces (not dessert)" checked={addedSugar} onChange={setAddedSugar} />
+        <Toggle label="Large portion" desc="Overall meal volume was larger than a normal serving" checked={largePortion} onChange={setLargePortion} />
+        <Toggle label="Eating out" desc="Restaurant, hawker, takeaway — preparation and ingredients unknown" checked={eatingOut} onChange={setEatingOut} />
       </div>
 
       <SectionHead>Notes</SectionHead>

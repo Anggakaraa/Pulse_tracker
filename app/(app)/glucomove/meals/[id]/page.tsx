@@ -26,6 +26,9 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
     meal.cooled_starch && "Cooled starch",
     meal.fruit_after && "Fruit after",
     meal.dessert_after && "Dessert after",
+    meal.added_sugar && "Added sugar",
+    meal.large_portion && "Large portion",
+    meal.eating_out && "Eating out",
   ].filter(Boolean) as string[];
 
   return (
