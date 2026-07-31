@@ -19,8 +19,8 @@ const EVENT_COLOR: Record<string, string> = {
 };
 
 interface Reading { id: string; timestamp: string; glucose_mmol: number; }
-interface Meal    { id: string; meal_start_time: string; }
-interface GEvent  { id: string; event_type: string; start_time: string; end_time: string | null; }
+interface Meal    { id: string; name: string; meal_start_time: string; }
+interface GEvent  { id: string; name: string; event_type: string; start_time: string; end_time: string | null; }
 
 function toWIBMinute(ts: string): number {
   const ms = new Date(ts).getTime() + 7 * 60 * 60 * 1000;
@@ -64,6 +64,7 @@ export default function DayGlucoseChart({ readings, meals, events }: {
               stroke={EVENT_COLOR[ev.event_type] ?? "#8A8178"}
               strokeOpacity={0.2}
               strokeWidth={1}
+              label={{ value: ev.name || ev.event_type, position: "insideTopLeft", fontSize: 10, fill: EVENT_COLOR[ev.event_type] ?? "#8A8178", fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
             />
           ))}
 
@@ -71,7 +72,17 @@ export default function DayGlucoseChart({ readings, meals, events }: {
           <ReferenceLine y={7.8} stroke={colors.badge.stable}  strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.6} />
 
           {meals.map((m, i) => (
-            <ReferenceLine key={i} x={toWIBMinute(m.meal_start_time)} stroke={colors.inkMuted} strokeDasharray="3 3" strokeWidth={1} strokeOpacity={0.4} />
+            <ReferenceArea
+              key={i}
+              x1={toWIBMinute(m.meal_start_time)}
+              x2={toWIBMinute(m.meal_start_time) + 120}
+              fill="#A8882A"
+              fillOpacity={0.07}
+              stroke="#A8882A"
+              strokeOpacity={0.3}
+              strokeWidth={1}
+              label={{ value: m.name, position: "insideTopLeft", fontSize: 10, fill: "#A8882A", fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
+            />
           ))}
 
           <XAxis
@@ -105,8 +116,8 @@ export default function DayGlucoseChart({ readings, meals, events }: {
             dataKey="glucose"
             stroke="#2E547A"
             strokeWidth={2}
-            dot={{ r: 3, fill: "#2E547A", stroke: colors.background, strokeWidth: 1 }}
-            activeDot={{ r: 4, fill: "#2E547A" }}
+            dot={{ r: 1.5, fill: "#2E547A", strokeWidth: 0 }}
+            activeDot={{ r: 3, fill: "#2E547A" }}
             connectNulls
           />
         </LineChart>
