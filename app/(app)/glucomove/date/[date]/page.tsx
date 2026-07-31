@@ -169,7 +169,7 @@ export default async function DateViewPage({ params }: { params: Promise<{ date:
               const { meal, metrics } = item.data;
               return (
                 <Link key={`meal-${meal.id}`} href={`/glucomove/meals/${meal.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", backgroundColor: colors.background }}>
+                  <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid #A8882A`, borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", backgroundColor: colors.background }}>
                     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                       <span style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, minWidth: "72px" }}>
                         {new Date(meal.meal_start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}
