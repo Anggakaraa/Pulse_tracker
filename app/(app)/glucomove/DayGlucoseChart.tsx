@@ -78,36 +78,45 @@ export default function DayGlucoseChart({ readings, meals, events, sensorErrorPe
             );
           })}
 
-          {events.map((ev, i) => (
-            <ReferenceArea
-              key={i}
-              x1={toWIBMinute(ev.start_time)}
-              x2={ev.end_time ? toWIBMinute(ev.end_time) : toWIBMinute(ev.start_time) + 60}
-              fill={glucomoveEventColors[ev.event_type] ?? colors.inkMuted}
-              fillOpacity={0.08}
-              stroke={glucomoveEventColors[ev.event_type] ?? colors.inkMuted}
-              strokeOpacity={0.2}
-              strokeWidth={1}
-              label={{ value: ev.name || ev.event_type, position: "insideTopLeft", fontSize: 10, fill: glucomoveEventColors[ev.event_type] ?? colors.inkMuted, fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
-            />
-          ))}
+          {/* Combine meals + events, sort by start time, stagger label heights to avoid stacking */}
+          {[
+            ...events.map(ev => ({
+              x1: toWIBMinute(ev.start_time),
+              x2: ev.end_time ? toWIBMinute(ev.end_time) : toWIBMinute(ev.start_time) + 60,
+              name: ev.name || ev.event_type,
+              color: glucomoveEventColors[ev.event_type] ?? colors.inkMuted,
+              fillOpacity: 0.08,
+              strokeOpacity: 0.2,
+            })),
+            ...meals.map(m => ({
+              x1: toWIBMinute(m.meal_start_time),
+              x2: toWIBMinute(m.meal_start_time) + 120,
+              name: m.name,
+              color: colors.category.nutritional,
+              fillOpacity: 0.07,
+              strokeOpacity: 0.3,
+            })),
+          ]
+            .sort((a, b) => a.x1 - b.x1)
+            .map((item, i) => {
+              const label = item.name.length > 14 ? item.name.slice(0, 13) + "…" : item.name;
+              return (
+                <ReferenceArea
+                  key={i}
+                  x1={item.x1}
+                  x2={item.x2}
+                  fill={item.color}
+                  fillOpacity={item.fillOpacity}
+                  stroke={item.color}
+                  strokeOpacity={item.strokeOpacity}
+                  strokeWidth={1}
+                  label={{ value: label, position: "insideTopLeft", fontSize: 10, fill: item.color, fontFamily: "var(--font-outfit)", dy: 4 + (i % 3) * 12, dx: 4 }}
+                />
+              );
+            })}
 
           <ReferenceLine y={3.9} stroke={colors.badge.optimal} strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.6} />
           <ReferenceLine y={7.8} stroke={colors.badge.stable}  strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.6} />
-
-          {meals.map((m, i) => (
-            <ReferenceArea
-              key={i}
-              x1={toWIBMinute(m.meal_start_time)}
-              x2={toWIBMinute(m.meal_start_time) + 120}
-              fill={colors.category.nutritional}
-              fillOpacity={0.07}
-              stroke={colors.category.nutritional}
-              strokeOpacity={0.3}
-              strokeWidth={1}
-              label={{ value: m.name, position: "insideTopLeft", fontSize: 10, fill: colors.category.nutritional, fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
-            />
-          ))}
 
           <XAxis
             dataKey="minuteOfDay"

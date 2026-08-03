@@ -311,6 +311,7 @@ export const PRIMARY_CARB_LABEL: Record<string, string> = {
   quinoa: "Quinoa",
   cauliflower_rice: "Cauliflower rice",
   potato: "Potato",
+  fruit: "Fruit",
   other: "Other",
 };
 

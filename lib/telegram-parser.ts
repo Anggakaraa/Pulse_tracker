@@ -51,9 +51,9 @@ low=minimal fat (plain rice, bread, fruit, steamed veg) | moderate=some fat (sti
 
 fat_before: true ONLY if the message explicitly mentions taking olive oil, butter, nuts, avocado, or another fat source as a deliberate pre-meal buffer before starting to eat (not just fat as part of the meal)
 
-primary_carb_source is an ARRAY of carb sources (can be more than one). Each element must be one of: none, white_rice, red_brown_rice, bread, fibrous_bread, pasta, wholewheat_pasta, noodles_flour, sugar_dessert, quinoa, cauliflower_rice, potato, other
+primary_carb_source is an ARRAY of carb sources (can be more than one). Each element must be one of: none, white_rice, red_brown_rice, bread, fibrous_bread, pasta, wholewheat_pasta, noodles_flour, sugar_dessert, quinoa, cauliflower_rice, potato, fruit, other
 Use ["none"] when there are no meaningful carbs. Use multiple values when the meal has multiple distinct carb sources (e.g. rice and bread → ["white_rice","bread"]). Never mix "none" with other values.
-Mappings: nasi putih/white rice→white_rice | nasi merah/hitam/brown/black rice→red_brown_rice | mie/bihun/kwetiau/noodles→noodles_flour | spaghetti/pasta→pasta | wholegrain pasta→wholewheat_pasta | roti biasa→bread | roti gandum/wholemeal→fibrous_bread | kue/dessert/sweet→sugar_dessert | kentang/potato/fries/mashed potato→potato | no carbs→none
+Mappings: nasi putih/white rice→white_rice | nasi merah/hitam/brown/black rice→red_brown_rice | mie/bihun/kwetiau/noodles→noodles_flour | spaghetti/pasta→pasta | wholegrain pasta→wholewheat_pasta | roti biasa→bread | roti gandum/wholemeal→fibrous_bread | kue/dessert/sweet→sugar_dessert | kentang/potato/fries/mashed potato→potato | buah/fruit/pisang/apel/mangga/etc→fruit | no carbs→none
 
 carb_prominence: none=no carbs | supporting=small side component | moderate=balanced part of meal | hero=dominant/carb-heavy
 
