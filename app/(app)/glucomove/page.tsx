@@ -4,13 +4,14 @@ import {
   getTodayDayRecord, getMealsByDate, getMealWithReadings,
   getDateWIB, getReadingsForDate, getEventsForDate,
 } from "@/lib/glucomove-queries";
-import { colors } from "@/lib/tokens";
+import { colors, glucomoveEventColors } from "@/lib/tokens";
 import {
   mmol, mmolDiff,
   MEAL_TYPE_LABEL, RESPONSE_BAND_COLOR, RESPONSE_BAND_LABEL,
 } from "@/lib/glucomove-calcs";
 import DayGlucoseChart from "./DayGlucoseChart";
 import DayReadingsList from "./DayReadingsList";
+import Button from "@/components/Button";
 
 async function getCurrentUserId() {
   const supabase = await createSupabaseServerClient();
@@ -21,12 +22,7 @@ async function getCurrentUserId() {
 const EVENT_TYPE_LABEL: Record<string, string> = {
   stress: "Stress", exercise: "Exercise", alcohol: "Alcohol",
   illness: "Illness", sleep: "Sleep", travel: "Travel",
-  fasting: "Fasting", medication: "Medication", other: "Other",
-};
-const EVENT_TYPE_COLOR: Record<string, string> = {
-  stress: "#B5522A", exercise: "#5C8A6A", alcohol: "#6E3D8C",
-  illness: "#B5522A", sleep: "#2E547A", travel: "#A8882A",
-  fasting: "#8A8178", medication: "#2E547A", other: "#8A8178",
+  fasting: "Fasting", medication: "Medication", recovery: "Recovery", other: "Other",
 };
 
 export default async function GlucomovePage() {
@@ -83,9 +79,7 @@ export default async function GlucomovePage() {
           </p>
         </div>
         <Link href="/glucomove/days" style={{ textDecoration: "none" }}>
-          <button style={{ padding: "7px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-            All days
-          </button>
+          <Button variant="ghost">All days</Button>
         </Link>
       </div>
 
@@ -111,9 +105,7 @@ export default async function GlucomovePage() {
             No waking / daily glucose logged yet.
           </p>
           <Link href={`/glucomove/days/new?date=${today}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              Log day record
-            </button>
+            <Button variant="ghost">Log day record</Button>
           </Link>
         </div>
       )}
@@ -135,19 +127,13 @@ export default async function GlucomovePage() {
         </p>
         <div style={{ display: "flex", gap: "8px" }}>
           <Link href={`/glucomove/readings/new?date=${today}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              + Reading
-            </button>
+            <Button variant="ghost">+ Reading</Button>
           </Link>
           <Link href={`/glucomove/events/new?date=${today}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              + Event
-            </button>
+            <Button variant="ghost">+ Event</Button>
           </Link>
           <Link href={`/glucomove/meals/new?date=${today}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: colors.ink, color: colors.background, border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              + Meal
-            </button>
+            <Button variant="primary">+ Meal</Button>
           </Link>
         </div>
       </div>
@@ -203,7 +189,7 @@ export default async function GlucomovePage() {
 
             // Event row
             const ev = item.data;
-            const evColor = EVENT_TYPE_COLOR[ev.event_type] ?? colors.inkMuted;
+            const evColor = glucomoveEventColors[ev.event_type] ?? colors.inkMuted;
             return (
               <Link key={`event-${ev.id}`} href={`/glucomove/events/${ev.id}`} style={{ textDecoration: "none", color: "inherit" }}>
               <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${evColor}`, borderRadius: "6px", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background, cursor: "pointer" }}>

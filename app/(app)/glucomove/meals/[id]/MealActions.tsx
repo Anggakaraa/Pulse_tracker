@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import Button from "@/components/Button";
 
 export default function MealActions({
   mealId,
@@ -34,19 +35,16 @@ export default function MealActions({
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>Delete this meal?</span>
-        <button
+        <Button
           onClick={handleDelete}
           disabled={deleting}
-          style={{ padding: "5px 12px", backgroundColor: "#A03828", color: "#FBF8F0", border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer", opacity: deleting ? 0.6 : 1 }}
+          style={{ backgroundColor: colors.badge.act }}
         >
           {deleting ? "Deleting…" : "Yes, delete"}
-        </button>
-        <button
-          onClick={() => setConfirming(false)}
-          style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}
-        >
+        </Button>
+        <Button variant="ghost" onClick={() => setConfirming(false)}>
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
@@ -54,16 +52,11 @@ export default function MealActions({
   return (
     <div style={{ display: "flex", gap: "8px" }}>
       <Link href={`/glucomove/meals/${mealId}/edit`} style={{ textDecoration: "none" }}>
-        <button style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}>
-          Edit meal
-        </button>
+        <Button variant="ghost">Edit meal</Button>
       </Link>
-      <button
-        onClick={() => setConfirming(true)}
-        style={{ padding: "5px 12px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "12px", cursor: "pointer" }}
-      >
+      <Button variant="ghost" onClick={() => setConfirming(true)}>
         Delete meal
-      </button>
+      </Button>
     </div>
   );
 }

@@ -122,8 +122,9 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
               <Row label="Movement" value={mmolDiff(metrics.spikeMmol)} />
               <Row label="Time to peak" value={metrics.timeToPeakMinutes !== null ? `${metrics.timeToPeakMinutes} min` : "—"} />
               <Row label="Recovery time" value={metrics.returnToBaselineMinutes !== null ? `${metrics.returnToBaselineMinutes} min` : "Not yet"} />
-              <Row label="Time below 7.8" value={metrics.minutesBelow7_8 !== null ? `${metrics.minutesBelow7_8} min` : metrics.peakGlucoseMmol !== null && metrics.peakGlucoseMmol <= 7.8 ? "Never crossed" : "Not yet"} />
-              <Row label="iAUC" value={metrics.iAUC !== null ? `${metrics.iAUC} mmol/L·min` : "—"} />
+              <Row label="Time above 7.8" value={metrics.minutesAbove7_8 !== null ? `${metrics.minutesAbove7_8} min` : metrics.peakGlucoseMmol !== null && metrics.peakGlucoseMmol <= 7.8 ? "—" : "Still elevated"} />
+              <Row label="Peak to below 7.8" value={metrics.minutesPeakToBelow7_8 !== null ? `${metrics.minutesPeakToBelow7_8} min` : metrics.peakGlucoseMmol !== null && metrics.peakGlucoseMmol <= 7.8 ? "—" : "Still elevated"} />
+              <Row label="iAUC-120" value={metrics.iAUC !== null ? `${metrics.iAUC.toFixed(1)} mmol/L·min` : "In progress"} />
               <Row label="Post-peak low" value={mmol(metrics.postPeakLowMmol)} />
             </div>
           </>
@@ -133,10 +134,10 @@ export default async function MealDetailPage({ params }: { params: Promise<{ id:
       {/* Glucose curve + observation window */}
       <MealObservationPanel readings={readings} mealStartTime={meal.meal_start_time} />
 
-      {/* Notes */}
+      {/* Hypothesis */}
       {meal.notes && (
         <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "16px 20px", marginTop: "16px" }}>
-          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "8px" }}>Notes</p>
+          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "8px" }}>Hypothesis</p>
           <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink, lineHeight: 1.6 }}>{meal.notes}</p>
         </div>
       )}

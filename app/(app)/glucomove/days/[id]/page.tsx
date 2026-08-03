@@ -1,26 +1,23 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { getDayWithMealsAndMetrics, getEventsForDate, getReadingsForDate } from "@/lib/glucomove-queries";
-import { colors } from "@/lib/tokens";
+import { colors, glucomoveEventColors } from "@/lib/tokens";
 import {
   mmol, mmolDiff,
   MEAL_TYPE_LABEL, RESPONSE_BAND_COLOR, RESPONSE_BAND_LABEL,
   PRIMARY_CARB_LABEL, CARB_PROMINENCE_LABEL,
+  isInSensorErrorPeriod, type SensorErrorPeriod,
 } from "@/lib/glucomove-calcs";
 import DayRecordEditor from "./DayRecordEditor";
 import DayActions from "./DayActions";
 import DayGlucoseChart from "../../DayGlucoseChart";
 import DayReadingsList from "../../DayReadingsList";
+import Button from "@/components/Button";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   stress: "Stress", exercise: "Exercise", alcohol: "Alcohol",
   illness: "Illness", sleep: "Sleep", travel: "Travel",
-  fasting: "Fasting", medication: "Medication", other: "Other",
-};
-const EVENT_TYPE_COLOR: Record<string, string> = {
-  stress: "#B5522A", exercise: "#5C8A6A", alcohol: "#6E3D8C",
-  illness: "#B5522A", sleep: "#2E547A", travel: "#A8882A",
-  fasting: "#8A8178", medication: "#2E547A", other: "#8A8178",
+  fasting: "Fasting", medication: "Medication", recovery: "Recovery", other: "Other",
 };
 
 export default async function DayDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,9 +32,23 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
     getReadingsForDate(day.date, day.user_id),
   ]);
 
-  const twlPct = readings.length >= 6
-    ? Math.round(readings.filter((r: { glucose_mmol: number }) => r.glucose_mmol <= 7.8).length / readings.length * 100)
+  const errorPeriods = (Array.isArray(day.sensor_error_periods) ? day.sensor_error_periods : []) as SensorErrorPeriod[];
+  const cleanReadings = readings.filter((r: { timestamp: string }) => !isInSensorErrorPeriod(r.timestamp, errorPeriods));
+
+  const twlPct = cleanReadings.length >= 6
+    ? Math.round(cleanReadings.filter((r: { glucose_mmol: number }) => r.glucose_mmol <= 7.8).length / cleanReadings.length * 100)
     : null;
+
+  const avg = (vals: number[]) => vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;
+
+  const dailyAvg = avg(cleanReadings.map((r: { glucose_mmol: number }) => r.glucose_mmol));
+
+  // Overnight = readings between 00:00–06:00 WIB
+  const overnightReadings = cleanReadings.filter((r: { timestamp: string }) => {
+    const wibHour = (new Date(r.timestamp).getUTCHours() + 7) % 24;
+    return wibHour < 6;
+  });
+  const overnightAvg = avg(overnightReadings.map((r: { glucose_mmol: number }) => r.glucose_mmol));
 
   type TimelineItem =
     | { kind: "meal"; data: (typeof meals)[number] }
@@ -90,14 +101,22 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
             ? <Stat label="Waking glucose" value={mmol(day.waking_glucose_mmol)} />
             : <Stat label="Waking glucose" value="—" muted />
           }
-          {day.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(day.overnight_avg_mmol)} />}
-          {day.daily_avg_mmol && <Stat label="Daily avg" value={mmol(day.daily_avg_mmol)} />}
+          {overnightAvg !== null && <Stat label="Overnight avg" value={mmol(overnightAvg)} />}
+          {dailyAvg !== null && <Stat label="Daily avg" value={mmol(dailyAvg)} />}
           {twlPct !== null && <Stat label="TWL" value={`${twlPct}%`} />}
         </div>
-        {day.potential_sensor_issue && (
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable, marginTop: "12px" }}>
-            ⚠ Potential sensor issue flagged — excluded from analysis by default.
-          </p>
+        {(day.bad_sleep || day.alcohol_previous_night || day.potential_sensor_issue) && (
+          <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            {day.bad_sleep && (
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable }}>Poor sleep</span>
+            )}
+            {day.alcohol_previous_night && (
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable }}>Alcohol previous night</span>
+            )}
+            {day.potential_sensor_issue && (
+              <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.stable }}>⚠ Potential sensor issue</span>
+            )}
+          </div>
         )}
         {day.notes && (
           <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, marginTop: "12px", borderTop: `1px solid ${colors.border}`, paddingTop: "12px" }}>
@@ -112,7 +131,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
           <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "10px" }}>
             Glucose movement
           </p>
-          <DayGlucoseChart readings={readings} meals={meals.map(m => m.meal)} events={events} />
+          <DayGlucoseChart readings={readings} meals={meals.map(m => m.meal)} events={events} sensorErrorPeriods={errorPeriods} />
         </>
       )}
 
@@ -152,9 +171,9 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
               Responses
             </p>
             {[
-              { label: "Low",      count: lowCount,  color: "#4A8C62" },
-              { label: "Moderate", count: modCount,  color: "#A8882A" },
-              { label: "High",     count: highCount, color: "#A03828" },
+              { label: "Low",      count: lowCount,  color: colors.badge.optimal },
+              { label: "Moderate", count: modCount,  color: colors.badge.stable },
+              { label: "High",     count: highCount, color: colors.badge.act },
             ].map(({ label, count, color }, i) => (
               <Fragment key={label}>
                 {i > 0 && <span style={{ color: colors.border, fontSize: "14px", userSelect: "none" }}>·</span>}
@@ -184,14 +203,10 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
         </p>
         <div style={{ display: "flex", gap: "8px" }}>
           <Link href={`/glucomove/events/new?date=${day.date}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              + Event
-            </button>
+            <Button variant="ghost">+ Event</Button>
           </Link>
           <Link href={`/glucomove/meals/new?date=${day.date}`} style={{ textDecoration: "none" }}>
-            <button style={{ padding: "6px 14px", backgroundColor: colors.ink, color: colors.background, border: "none", borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
-              + Meal
-            </button>
+            <Button variant="primary">+ Meal</Button>
           </Link>
         </div>
       </div>
@@ -205,7 +220,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
               const { meal, metrics } = item.data;
               return (
                 <Link key={`meal-${meal.id}`} href={`/glucomove/meals/${meal.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ border: `1px solid ${colors.border}`, borderLeft: "3px solid #A8882A", borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background }}>
+                  <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.category.nutritional}`, borderRadius: "6px", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background }}>
                     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                       <span style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.inkMuted, minWidth: "72px" }}>
                         {new Date(meal.meal_start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}
@@ -242,7 +257,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
             }
 
             const ev = item.data;
-            const evColor = EVENT_TYPE_COLOR[ev.event_type] ?? colors.inkMuted;
+            const evColor = glucomoveEventColors[ev.event_type] ?? colors.inkMuted;
             return (
               <Link key={`event-${ev.id}`} href={`/glucomove/events/${ev.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                 <div style={{ border: `1px solid ${colors.border}`, borderLeft: `3px solid ${evColor}`, borderRadius: "6px", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: colors.background, cursor: "pointer" }}>

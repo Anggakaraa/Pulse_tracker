@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { PRIMARY_CARB_LABEL, CARB_PROMINENCE_LABEL, MEAL_TYPE_LABEL } from "@/lib/glucomove-calcs";
+import Button from "@/components/Button";
 
 const TYPE_LABEL: Record<string, string> = {
   day_record: "Day record",
@@ -65,6 +66,8 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
   const [waking, setWaking] = useState(String(parsed.waking_glucose_mmol ?? ""));
   const [overnight, setOvernight] = useState(String(parsed.overnight_avg_mmol ?? ""));
   const [daily, setDaily] = useState(String(parsed.daily_avg_mmol ?? ""));
+  const [badSleep, setBadSleep] = useState(Boolean(parsed.bad_sleep));
+  const [alcoholPrevNight, setAlcoholPrevNight] = useState(Boolean(parsed.alcohol_previous_night));
 
   // Editable glucose reading
   const [glucoseMmol, setGlucoseMmol] = useState(String(parsed.glucose_mmol ?? ""));
@@ -90,6 +93,8 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
       waking_glucose_mmol: parseFloat(waking),
       overnight_avg_mmol: overnight ? parseFloat(overnight) : null,
       daily_avg_mmol: daily ? parseFloat(daily) : null,
+      bad_sleep: badSleep,
+      alcohol_previous_night: alcoholPrevNight,
     });
 
     if (err) { setError(err.message); setSaving(false); return; }
@@ -162,18 +167,16 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
         </div>
         <div style={{ display: "flex", gap: "6px" }}>
           {type !== "unknown" && (
-            <button onClick={() => setEditing(!editing)} style={{ padding: "4px 10px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(!editing)}>
               {editing ? "Cancel" : "Edit"}
-            </button>
+            </Button>
           )}
-          <button onClick={dismiss} disabled={dismissing} style={{ padding: "4px 10px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
-            Dismiss
-          </button>
+          <Button size="sm" variant="ghost" onClick={dismiss} disabled={dismissing}>Dismiss</Button>
         </div>
       </div>
 
       {/* Raw message */}
-      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${colors.border}`, backgroundColor: "#FAF8F2" }}>
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${colors.border}`, backgroundColor: colors.background }}>
         <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted, fontStyle: "italic" }}>
           "{draft.raw_message as string}"
         </p>
@@ -196,10 +199,20 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
                 {editing ? <input type="number" step="0.1" value={daily} onChange={e => setDaily(e.target.value)} style={inputStyle()} /> : <Val>{daily ? `${daily} mmol/L` : "—"}</Val>}
               </Field>
             </div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                <input type="checkbox" checked={badSleep} onChange={e => setBadSleep(e.target.checked)} style={{ accentColor: colors.ink }} />
+                Bad sleep previous night
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                <input type="checkbox" checked={alcoholPrevNight} onChange={e => setAlcoholPrevNight(e.target.checked)} style={{ accentColor: colors.ink }} />
+                Alcohol previous night
+              </label>
+            </div>
             {error && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.act }}>{error}</p>}
-            <button onClick={approveDayRecord} disabled={saving} style={approveBtn(saving)}>
+            <Button variant="primary" size="lg" onClick={approveDayRecord} disabled={saving} style={{ alignSelf: "flex-start" }}>
               {saving ? "Saving…" : "Approve — create day record"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -223,9 +236,9 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
                       {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => {
                         const active = carbSource.includes(v);
                         return (
-                          <button key={v} type="button" onClick={() => setCarbSource(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])} style={{ padding: "4px 10px", borderRadius: "4px", border: `1px solid ${active ? colors.ink : colors.border}`, backgroundColor: active ? colors.ink : "transparent", color: active ? colors.background : colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+                          <Button key={v} size="sm" variant={active ? "primary" : "ghost"} type="button" onClick={() => setCarbSource(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v])}>
                             {l}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -282,9 +295,9 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
               <input type="text" placeholder={sentAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} value={mealTime} onChange={e => setMealTime(e.target.value)} style={inputStyle("100px")} />
             </Field>
             {error && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.act }}>{error}</p>}
-            <button onClick={approveMeal} disabled={saving} style={approveBtn(saving)}>
+            <Button variant="primary" size="lg" onClick={approveMeal} disabled={saving} style={{ alignSelf: "flex-start" }}>
               {saving ? "Saving…" : "Approve — create meal"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -305,9 +318,9 @@ export default function DraftCard({ draft }: { draft: Record<string, unknown> })
               Leave blank to use message time. The system auto-associates this reading with meals by time.
             </p>
             {error && <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.badge.act }}>{error}</p>}
-            <button onClick={approveGlucoseReading} disabled={saving} style={approveBtn(saving)}>
+            <Button variant="primary" size="lg" onClick={approveGlucoseReading} disabled={saving} style={{ alignSelf: "flex-start" }}>
               {saving ? "Saving…" : "Approve — save reading"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -335,12 +348,3 @@ function Val({ children }: { children: React.ReactNode }) {
   return <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.ink }}>{children}</p>;
 }
 
-function approveBtn(disabled: boolean) {
-  return {
-    padding: "8px 16px", backgroundColor: disabled ? colors.inkMuted : colors.ink,
-    color: colors.background, border: "none", borderRadius: "4px",
-    fontFamily: "var(--font-dm-sans)" as const, fontSize: "13px",
-    cursor: disabled ? "not-allowed" as const : "pointer" as const,
-    alignSelf: "flex-start" as const,
-  };
-}

@@ -317,14 +317,14 @@ export default function MealEditForm({ meal }: { meal: MealData }) {
         <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
         <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
         <Toggle label="Added sugar" desc="Dishes with sugar as a cooking ingredient — sweet marinades, glazes, sauces (not dessert)" checked={addedSugar} onChange={setAddedSugar} />
-        <Toggle label="Large portion" desc="Overall meal volume was larger than a normal serving" checked={largePortion} onChange={setLargePortion} />
+        <Toggle label="Large portion" desc="Felt unusually full, heavy, or bloated after finishing the meal" checked={largePortion} onChange={setLargePortion} />
         <Toggle label="Eating out" desc="Restaurant, hawker, takeaway — preparation and ingredients unknown" checked={eatingOut} onChange={setEatingOut} />
       </div>
 
-      <SectionHead>Notes</SectionHead>
+      <SectionHead>Hypothesis</SectionHead>
 
       <div>
-        <textarea placeholder="Any additional notes about this meal…" value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ ...inputStyle(), resize: "vertical" as const }} />
+        <textarea placeholder="What do you expect from this meal? Any context that might explain the response…" value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ ...inputStyle(), resize: "vertical" as const }} />
       </div>
 
       <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.inkMuted, userSelect: "none" as const }}>

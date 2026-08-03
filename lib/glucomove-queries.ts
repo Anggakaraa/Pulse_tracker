@@ -118,8 +118,33 @@ export async function getMealWithReadings(mealId: string) {
     .single();
   if (!meal) return null;
 
-  const readings = await getReadingsForMeal(supabase, meal.id, meal.user_id, meal.meal_start_time);
-  const metrics = calcMealMetrics(readings, meal.meal_start_time);
+  const [readings, nextMealResult, nextEventResult] = await Promise.all([
+    getReadingsForMeal(supabase, meal.id, meal.user_id, meal.meal_start_time),
+    supabase
+      .from("glucomove_meals")
+      .select("meal_start_time")
+      .eq("user_id", meal.user_id)
+      .gt("meal_start_time", meal.meal_start_time)
+      .order("meal_start_time", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("glucomove_events")
+      .select("start_time")
+      .eq("user_id", meal.user_id)
+      .gt("start_time", meal.meal_start_time)
+      .order("start_time", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const cutoffCandidates = [
+    nextMealResult.data?.meal_start_time,
+    nextEventResult.data?.start_time,
+  ].filter(Boolean).map(t => new Date(t!).getTime());
+  const peakCutoffMs = cutoffCandidates.length > 0 ? Math.min(...cutoffCandidates) : undefined;
+
+  const metrics = calcMealMetrics(readings, meal.meal_start_time, peakCutoffMs);
   return { meal, readings, metrics };
 }
 
@@ -132,20 +157,39 @@ export async function getDayWithMealsAndMetrics(dayRecordId: string) {
     .single();
   if (!day) return null;
 
-  // Fetch all meals on this date (whether linked to this day record or not)
+  // Fetch all meals and events on this date
   const { start, end } = dayWindowWIB(day.date);
-  const { data: meals } = await supabase
-    .from("glucomove_meals")
-    .select("*")
-    .eq("user_id", day.user_id)
-    .gte("meal_start_time", start)
-    .lte("meal_start_time", end)
-    .order("meal_start_time", { ascending: true });
+  const [{ data: meals }, { data: events }] = await Promise.all([
+    supabase
+      .from("glucomove_meals")
+      .select("*")
+      .eq("user_id", day.user_id)
+      .gte("meal_start_time", start)
+      .lte("meal_start_time", end)
+      .order("meal_start_time", { ascending: true }),
+    supabase
+      .from("glucomove_events")
+      .select("start_time")
+      .eq("user_id", day.user_id)
+      .gte("start_time", start)
+      .lte("start_time", end)
+      .order("start_time", { ascending: true }),
+  ]);
+
+  // Activity timeline: all meal starts + event starts, for computing per-meal cutoffs
+  const activityMs = [
+    ...(meals ?? []).map(m => new Date(m.meal_start_time).getTime()),
+    ...(events ?? []).map(e => new Date(e.start_time).getTime()),
+  ];
 
   const mealsWithReadings = await Promise.all(
     (meals ?? []).map(async (meal) => {
+      const mealMs = new Date(meal.meal_start_time).getTime();
+      const nextActivityMs = activityMs
+        .filter(t => t > mealMs)
+        .sort((a, b) => a - b)[0];
       const readings = await getReadingsForMeal(supabase, meal.id, meal.user_id, meal.meal_start_time);
-      const metrics = calcMealMetrics(readings, meal.meal_start_time);
+      const metrics = calcMealMetrics(readings, meal.meal_start_time, nextActivityMs);
       return { meal, readings, metrics };
     })
   );
@@ -220,7 +264,7 @@ export async function getAllDatesWithActivity(userId: string) {
     .sort((a, b) => b.localeCompare(a))
     .map(date => {
       const vals = readingsByDate.get(date) ?? [];
-      const avgGlucose = vals.length >= 3
+      const avgGlucose = vals.length >= 1
         ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10
         : null;
       const twlPct = vals.length >= 6

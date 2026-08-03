@@ -73,6 +73,13 @@ Before writing any new Supabase query, check `DATA_DICTIONARY.md` for the exact 
 Never assume a column exists — verify it.
 If a column is needed but doesn't exist, create a migration first.
 
+## Rule 13 — Glucomove calculations must match glucomove-data.md
+
+Before changing any Glucomove metric formula, classification threshold, or introducing a new stored field,
+read `documentation/glucomove-data.md` first. Never recalculate a metric differently from how it is defined
+there — if the definition needs to change, update the spec first, then update the code.
+Any new open question or deferred decision must be added to §13 of that document.
+
 ## Rule 12 — All experiment queries must filter by subject
 
 Any query that joins `experiments` to `tests` must add `.eq("subject", "human")` on the tests side.

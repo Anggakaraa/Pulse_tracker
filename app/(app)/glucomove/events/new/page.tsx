@@ -28,6 +28,7 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
 const EVENT_TYPES = [
   { value: "stress",     label: "Stress" },
   { value: "exercise",   label: "Exercise" },
+  { value: "recovery",   label: "Recovery" },
   { value: "alcohol",    label: "Alcohol" },
   { value: "illness",    label: "Illness" },
   { value: "sleep",      label: "Sleep" },

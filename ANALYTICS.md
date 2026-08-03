@@ -1,8 +1,8 @@
 # Glucomove Analytics — Working Document
 
-> Last updated: 2026-07-31 (rev 2)
-> Status: Pre-build. Capturing assumptions and design intent before sufficient data exists.
-> Revisit when: ~15 meals + ~15 events logged. Build view when sample per category ≥ 8.
+> Last updated: 2026-08-01 (rev 3)
+> Status: Data collection in progress. Core metrics (iAUC-120, peak, spike, recovery) are live.
+> Revisit when: ~15 meals + ~15 events logged. Build analytics view when sample per category ≥ 8.
 
 ---
 
@@ -45,7 +45,7 @@ Rather than analysing by individual `primary_carb_source`, group into two tiers 
 These need lower sample sizes and are most immediately actionable.
 
 ### 1a. Carb group vs glucose response
-- **Metric**: average spike (mmol/L), average time to peak, average recovery time
+- **Metric**: average spike (mmol/L), average iAUC-120 (mmol/L·min), average time to peak, average recovery time
 - **Grouping**: simple vs complex vs low/no carb
 - **Expected signal**: simple carbs → higher spike, faster peak, potentially slower recovery
 - **Minimum data**: ~5 meals per group
@@ -53,10 +53,10 @@ These need lower sample sizes and are most immediately actionable.
 ### 1b. Modifier efficacy
 - **Modifiers to test**: fat buffer before, ACV before, movement after, structured eating, cooled starch, fruit after, dessert after
 - **Method**: within same carb group (simple carbs), compare meals with modifier vs without
-- **Metric**: spike delta — `avg spike (with modifier) − avg spike (without modifier)`, and recovery time
+- **Metric**: spike delta — `avg spike (with modifier) − avg spike (without modifier)`, iAUC-120 delta, and recovery time
 - **Key caveat**: not controlled for portion. A meal with walking after might also be a lighter meal. Keep this in mind when interpreting.
 - **Minimum data**: ~4–5 meals per modifier state within same carb group
-- **Note — fruit after and dessert after**: these are not yet in the data model. Needs two new boolean fields: `fruit_after` and `dessert_after` on `glucomove_meals`. Log these via Telegram until then with a note.
+- **Note — fruit after and dessert after**: ✅ `fruit_after` and `dessert_after` are live boolean fields on `glucomove_meals`. Parseable via Telegram.
 
 ### 1b-special. Fruit timing — snack vs post-meal
 - **This is a priority analytical question** — actionable and specific.
@@ -91,9 +91,9 @@ These require more data and more careful framing. Build these views later.
 
 ### 2c. Day glucose quality
 - **Define a "good glucose day"**:
-  - Daily avg ≤ 6.0 mmol/L
-  - No spike > 2.5 mmol/L above baseline
-  - Overnight avg ≤ 5.5 mmol/L
+  - Daily avg ≤ 6.0 mmol/L (auto-computed from readings — not manually entered)
+  - No spike > 2.5 mmol/L above baseline in any meal
+  - Overnight avg ≤ 5.5 mmol/L (auto-computed from readings where WIB hour < 6)
   - Waking glucose ≤ 5.5 mmol/L
 - **Use**: track trend over the 2-week period. Are days getting better, stable, or drifting?
 - **View**: simple timeline — good / ok / off — per day. Not statistical, just directional.
@@ -118,10 +118,12 @@ These require more data and more careful framing. Build these views later.
 ## Open questions to revisit
 
 - [x] ~~Should fruit be its own carb group?~~ Yes — fruit is its own group.
+- [x] ~~Should iAUC use a fixed window?~~ Yes — standardised to 120 min (iAUC-120). See `documentation/glucomove-data.md`.
 - [ ] How to handle mixed meals (e.g. high-fiber + high-protein + simple carbs)? Currently, each attribute is analysed independently.
 - [ ] At what spike magnitude does carryover become meaningful? (Threshold TBD with data)
-- [ ] Is 0.6 mmol/L the right return-to-baseline tolerance? Could make recovery times look artificially short.
+- [ ] Is 0.6 mmol/L the right return-to-baseline tolerance? Could make recovery times look artificially short. Revisit after ~15 meals.
 - [ ] Should modifier analysis weight by carb prominence? (e.g. ACV + hero rice vs ACV + supporting rice are very different)
+- [ ] iAUC-120 as primary comparability metric: validate once 8+ meals have iAUC values. Spike alone may be sufficient for modifier comparisons.
 
 ---
 
@@ -131,3 +133,4 @@ These require more data and more careful framing. Build these views later.
 |---|---|
 | 2026-07-31 | Initial document. Pre-data. Assumptions from design discussion. |
 | 2026-07-31 | Rev 2: fruit as own carb group; added fruit-after and dessert-after modifiers; fruit timing as priority analytical question; clarified 0.6 mmol/L return tolerance as open question. |
+| 2026-08-01 | Rev 3: fruit_after/dessert_after marked live; daily/overnight avg updated to auto-computed; iAUC-120 confirmed as standard metric; open questions updated. |

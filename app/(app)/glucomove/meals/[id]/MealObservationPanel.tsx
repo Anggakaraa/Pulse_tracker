@@ -6,6 +6,7 @@ import {
   ReferenceLine, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { colors } from "@/lib/tokens";
+import Button from "@/components/Button";
 import { calcMealMetrics, mmol, mmolDiff, RESPONSE_BAND_COLOR, RESPONSE_BAND_LABEL, RESPONSE_SHAPE_LABEL } from "@/lib/glucomove-calcs";
 import type { GlucoseReading } from "@/lib/glucomove-calcs";
 
@@ -56,21 +57,14 @@ export default function MealObservationPanel({
         </p>
         <div style={{ display: "flex", gap: "4px" }}>
           {WINDOW_OPTIONS.map(w => (
-            <button
+            <Button
               key={w}
+              size="sm"
+              variant={obsMinutes === w ? "primary" : "ghost"}
               onClick={() => setObsMinutes(w)}
-              style={{
-                padding: "4px 10px",
-                fontFamily: "var(--font-dm-sans)", fontSize: "12px",
-                border: `1px solid ${obsMinutes === w ? colors.ink : colors.border}`,
-                borderRadius: "4px",
-                backgroundColor: obsMinutes === w ? colors.ink : "transparent",
-                color: obsMinutes === w ? colors.background : colors.inkMuted,
-                cursor: "pointer",
-              }}
             >
               {w}m
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -86,7 +80,7 @@ export default function MealObservationPanel({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
-                <ReferenceLine x={0} stroke="#A8882A" strokeWidth={1.5} strokeOpacity={0.6} />
+                <ReferenceLine x={0} stroke={colors.category.nutritional} strokeWidth={1.5} strokeOpacity={0.6} />
                 <ReferenceLine y={3.9} stroke={colors.badge.optimal} strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.5} />
                 <ReferenceLine y={7.8} stroke={colors.badge.stable}  strokeDasharray="4 4" strokeWidth={1} strokeOpacity={0.5} />
                 <XAxis
@@ -118,16 +112,16 @@ export default function MealObservationPanel({
                 <Line
                   type="monotone"
                   dataKey="glucose"
-                  stroke="#2E547A"
+                  stroke={colors.category.cardiovascular}
                   strokeWidth={2}
                   dot={(props) => {
                     const { cx, cy, payload } = props;
                     if (payload.isBaseline) {
-                      return <circle key={payload.min} cx={cx} cy={cy} r={4} fill="#4A8C62" stroke={colors.background} strokeWidth={1.5} />;
+                      return <circle key={payload.min} cx={cx} cy={cy} r={4} fill={colors.badge.optimal} stroke={colors.background} strokeWidth={1.5} />;
                     }
-                    return <circle key={payload.min} cx={cx} cy={cy} r={1.5} fill="#2E547A" />;
+                    return <circle key={payload.min} cx={cx} cy={cy} r={1.5} fill={colors.category.cardiovascular} />;
                   }}
-                  activeDot={{ r: 3, fill: "#2E547A" }}
+                  activeDot={{ r: 3, fill: colors.category.cardiovascular }}
                   connectNulls
                 />
               </LineChart>

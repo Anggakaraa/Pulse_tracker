@@ -4,19 +4,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   ReferenceLine, ReferenceArea, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { colors } from "@/lib/tokens";
-
-const EVENT_COLOR: Record<string, string> = {
-  stress:   "#B5522A",
-  exercise: "#5C8A6A",
-  alcohol:  "#6E3D8C",
-  illness:  "#B5522A",
-  sleep:    "#2E547A",
-  travel:   "#A8882A",
-  fasting:    "#8A8178",
-  medication: "#2E547A",
-  other:      "#8A8178",
-};
+import { colors, glucomoveEventColors } from "@/lib/tokens";
+import { isInSensorErrorPeriod, type SensorErrorPeriod } from "@/lib/glucomove-calcs";
 
 interface Reading { id: string; timestamp: string; glucose_mmol: number; }
 interface Meal    { id: string; name: string; meal_start_time: string; }
@@ -33,20 +22,37 @@ function fmtMinute(m: number | string): string {
   return `${Math.floor(n / 60).toString().padStart(2, "0")}:${(n % 60).toString().padStart(2, "0")}`;
 }
 
-export default function DayGlucoseChart({ readings, meals, events }: {
+function parseHHMMtoMinute(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export default function DayGlucoseChart({ readings, meals, events, sensorErrorPeriods }: {
   readings: Reading[];
   meals: Meal[];
   events: GEvent[];
+  sensorErrorPeriods?: SensorErrorPeriod[];
 }) {
   if (readings.length < 2) return null;
 
+  const errorPeriods = sensorErrorPeriods ?? [];
+
   const data = readings
-    .map(r => ({ minuteOfDay: toWIBMinute(r.timestamp), glucose: r.glucose_mmol }))
+    .map(r => ({
+      minuteOfDay: toWIBMinute(r.timestamp),
+      glucose: r.glucose_mmol,
+      isDimmed: isInSensorErrorPeriod(r.timestamp, errorPeriods),
+    }))
     .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   const gv = data.map(d => d.glucose);
   const domainMin = Math.max(2, Math.floor((Math.min(...gv, 3.9) - 0.5) * 2) / 2);
   const domainMax = Math.ceil((Math.max(...gv, 7.8) + 0.5) * 2) / 2;
+
+  // X domain must include all meal windows, not just reading timestamps
+  const mealMinutes = meals.map(m => toWIBMinute(m.meal_start_time));
+  const xMin = Math.min(data[0]?.minuteOfDay ?? 0, ...mealMinutes);
+  const xMax = Math.max(data.at(-1)?.minuteOfDay ?? 1440, ...mealMinutes.map(m => m + 120));
 
   return (
     <div style={{ width: "100%", height: 160, marginBottom: "24px" }}>
@@ -54,17 +60,35 @@ export default function DayGlucoseChart({ readings, meals, events }: {
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
 
+          {errorPeriods.map((p, i) => {
+            const s = parseHHMMtoMinute(p.start);
+            const e = parseHHMMtoMinute(p.end);
+            const effectiveEnd = e === 0 ? 1440 : e;
+            return (
+              <ReferenceArea
+                key={`err-${i}`}
+                x1={s}
+                x2={effectiveEnd}
+                fill={colors.inkMuted}
+                fillOpacity={0.07}
+                stroke={colors.inkMuted}
+                strokeOpacity={0.15}
+                strokeWidth={1}
+              />
+            );
+          })}
+
           {events.map((ev, i) => (
             <ReferenceArea
               key={i}
               x1={toWIBMinute(ev.start_time)}
               x2={ev.end_time ? toWIBMinute(ev.end_time) : toWIBMinute(ev.start_time) + 60}
-              fill={EVENT_COLOR[ev.event_type] ?? "#8A8178"}
+              fill={glucomoveEventColors[ev.event_type] ?? colors.inkMuted}
               fillOpacity={0.08}
-              stroke={EVENT_COLOR[ev.event_type] ?? "#8A8178"}
+              stroke={glucomoveEventColors[ev.event_type] ?? colors.inkMuted}
               strokeOpacity={0.2}
               strokeWidth={1}
-              label={{ value: ev.name || ev.event_type, position: "insideTopLeft", fontSize: 10, fill: EVENT_COLOR[ev.event_type] ?? "#8A8178", fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
+              label={{ value: ev.name || ev.event_type, position: "insideTopLeft", fontSize: 10, fill: glucomoveEventColors[ev.event_type] ?? colors.inkMuted, fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
             />
           ))}
 
@@ -76,19 +100,19 @@ export default function DayGlucoseChart({ readings, meals, events }: {
               key={i}
               x1={toWIBMinute(m.meal_start_time)}
               x2={toWIBMinute(m.meal_start_time) + 120}
-              fill="#A8882A"
+              fill={colors.category.nutritional}
               fillOpacity={0.07}
-              stroke="#A8882A"
+              stroke={colors.category.nutritional}
               strokeOpacity={0.3}
               strokeWidth={1}
-              label={{ value: m.name, position: "insideTopLeft", fontSize: 10, fill: "#A8882A", fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
+              label={{ value: m.name, position: "insideTopLeft", fontSize: 10, fill: colors.category.nutritional, fontFamily: "var(--font-outfit)", dy: 4, dx: 4 }}
             />
           ))}
 
           <XAxis
             dataKey="minuteOfDay"
             type="number"
-            domain={["dataMin", "dataMax"]}
+            domain={[xMin, xMax]}
             tickFormatter={fmtMinute}
             tick={{ fontFamily: "var(--font-dm-sans)", fontSize: 11, fill: colors.inkMuted }}
             axisLine={false} tickLine={false}
@@ -114,10 +138,16 @@ export default function DayGlucoseChart({ readings, meals, events }: {
           <Line
             type="monotone"
             dataKey="glucose"
-            stroke="#2E547A"
+            stroke={colors.category.cardiovascular}
             strokeWidth={2}
-            dot={{ r: 1.5, fill: "#2E547A", strokeWidth: 0 }}
-            activeDot={{ r: 3, fill: "#2E547A" }}
+            dot={(props: unknown) => {
+              const { cx, cy, payload, index } = props as { cx: number; cy: number; payload: { isDimmed?: boolean }; index: number };
+              if (payload.isDimmed) {
+                return <circle key={`dot-${index}`} cx={cx} cy={cy} r={2} fill={colors.inkMuted} opacity={0.3} />;
+              }
+              return <circle key={`dot-${index}`} cx={cx} cy={cy} r={1.5} fill={colors.category.cardiovascular} />;
+            }}
+            activeDot={{ r: 3, fill: colors.category.cardiovascular }}
             connectNulls
           />
         </LineChart>

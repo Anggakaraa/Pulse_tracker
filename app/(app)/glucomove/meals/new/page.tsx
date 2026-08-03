@@ -323,7 +323,7 @@ function NewMealPageInner() {
           <Toggle label="Fruit after" desc="Fruit eaten immediately after this meal" checked={fruitAfter} onChange={setFruitAfter} />
           <Toggle label="Dessert after" desc="Dessert or sweet item eaten immediately after this meal" checked={dessertAfter} onChange={setDessertAfter} />
           <Toggle label="Added sugar" desc="Dishes with sugar as a cooking ingredient — sweet marinades, glazes, sauces (not dessert)" checked={addedSugar} onChange={setAddedSugar} />
-          <Toggle label="Large portion" desc="Overall meal volume was larger than a normal serving" checked={largePortion} onChange={setLargePortion} />
+          <Toggle label="Large portion" desc="Felt unusually full, heavy, or bloated after finishing the meal" checked={largePortion} onChange={setLargePortion} />
           <Toggle label="Eating out" desc="Restaurant, hawker, takeaway — preparation and ingredients unknown" checked={eatingOut} onChange={setEatingOut} />
         </div>
 

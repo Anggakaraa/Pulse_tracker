@@ -252,3 +252,179 @@ experiments read tests indirectly:
 | 006 | `006_tests_user_id.sql` | Adds `user_id` to `tests` — enables per-user isolation |
 | 007 | `007_experiments_user_id.sql` | Adds `user_id` to `experiments` |
 | 008 | `008_rls_policies.sql` | Enables RLS on all tables with access policies |
+
+---
+
+---
+
+# Glucomove — Database Reference
+
+> Section added: 2026-08-01
+> Glucomove is the continuous glucose tracking feature. All tables are prefixed `glucomove_`.
+> Authoritative calculation spec: `documentation/glucomove-data.md`
+> All timestamps stored in UTC. All day-boundary logic uses WIB (UTC+7).
+
+---
+
+## Glucomove table inventory
+
+| Table | Purpose |
+|---|---|
+| `glucomove_readings` | Raw CGM glucose readings — sourced from iOS Shortcuts / Apple Health |
+| `glucomove_meals` | Logged meals with full carb + modifier profile |
+| `glucomove_day_records` | One record per calendar day (WIB) — waking glucose and day-level notes |
+| `glucomove_events` | Non-meal activities that may affect glucose (exercise, stress, sleep, etc.) |
+| `glucomove_telegram_drafts` | Staging table for Telegram-ingested messages awaiting human approval |
+
+---
+
+## `glucomove_readings`
+
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | Auto-generated |
+| `user_id` | uuid | NOT NULL | FK → auth.users |
+| `meal_id` | uuid | nullable | FK → `glucomove_meals.id`. Set when a reading is explicitly attached to a meal. Free-floating readings have `null`. |
+| `timestamp` | timestamptz | NOT NULL | UTC. WIB = timestamp + 7h |
+| `glucose_mmol` | numeric | NOT NULL | mmol/L |
+| `is_baseline` | boolean | NOT NULL, default false | When true, this reading is used as the pre-meal baseline for its attached meal. Only meaningful when `meal_id` is set. |
+| `is_fasting` | boolean | NOT NULL, default false | True if recorded as a fasting/morning reading |
+| `notes` | text | nullable | Free text annotation |
+| `created_at` | timestamptz | default now() | |
+
+**Source**: iOS Shortcuts automation → `/api/glucomove/sync-readings`. Primary CGM cadence ~5 min. Free-floating readings (no `meal_id`) are linked to meals at query time by a ±30–240 min time window in `getReadingsForMeal()`.
+
+**Reading association logic** (in `lib/glucomove-queries.ts:getReadingsForMeal`):
+1. Explicitly attached readings (`meal_id = this meal`) — always included
+2. Free-floating readings (`meal_id IS NULL`) within `[mealStart − 30min, mealStart + 240min]` — included unless a `meal_id` of a different meal is set
+
+Both sets are merged and deduplicated by id.
+
+---
+
+## `glucomove_meals`
+
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | Auto-generated |
+| `user_id` | uuid | NOT NULL | FK → auth.users |
+| `day_record_id` | uuid | nullable | FK → `glucomove_day_records.id`. Not required — meals and day records are linked by date at query time. |
+| `meal_start_time` | timestamptz | NOT NULL | UTC. Used as t=0 for all meal metrics. |
+| `meal_type` | text | NOT NULL | `breakfast` \| `lunch` \| `dinner` \| `snack` \| `other` |
+| `name` | text | NOT NULL | Short meal name (e.g. "Baked salmon + potato") |
+| `description` | text | nullable | Full description of everything eaten |
+| `primary_carb_source` | text[] | NOT NULL | Array. Values: `none`, `white_rice`, `red_brown_rice`, `bread`, `fibrous_bread`, `pasta`, `wholewheat_pasta`, `noodles_flour`, `sugar_dessert`, `quinoa`, `cauliflower_rice`, `potato`, `other`. `["none"]` means no meaningful carb. |
+| `carb_prominence` | text | NOT NULL | `none` \| `supporting` \| `moderate` \| `hero` |
+| `fiber_prominence` | text | NOT NULL | `low` \| `moderate` \| `high` |
+| `protein_prominence` | text | NOT NULL | `low` \| `moderate` \| `high` |
+| `fat_prominence` | text | NOT NULL | `low` \| `moderate` \| `high` |
+| `fat_before` | boolean | NOT NULL, default false | Deliberate fat buffer taken before the meal |
+| `acv_before` | boolean | NOT NULL, default false | Apple cider vinegar taken before meal |
+| `structured_eating` | boolean | NOT NULL, default false | Eating in fiber→protein→carb order |
+| `movement_after` | boolean | NOT NULL, default false | Exercise/walk after meal |
+| `movement_duration_minutes` | integer | nullable | Duration of post-meal movement. Null if `movement_after = false`. |
+| `with_alcohol` | boolean | NOT NULL, default false | Alcohol consumed with meal |
+| `cooled_starch` | boolean | NOT NULL, default false | Starch was cooled/reheated (increases resistant starch) |
+| `fruit_after` | boolean | NOT NULL, default false | Fruit eaten immediately after meal |
+| `dessert_after` | boolean | NOT NULL, default false | Dessert/sweet eaten immediately after meal |
+| `added_sugar` | boolean | NOT NULL, default false | Sugar used as cooking ingredient (glazes, marinades) — not dessert |
+| `large_portion` | boolean | NOT NULL, default false | Larger-than-normal serving explicitly noted |
+| `eating_out` | boolean | NOT NULL, default false | Restaurant/takeaway — preparation unknown |
+| `notes` | text | nullable | Hypothesis field — user's expectation or contextual note. Displayed as "Hypothesis" in UI. Reserved for future AI-assisted analysis. |
+| `potential_sensor_issue` | boolean | NOT NULL, default false | Reading quality flag. Meals flagged here are excluded from aggregate analytics. |
+| `created_at` | timestamptz | default now() | |
+
+**Meal metrics are not stored** — they are computed on every read in `lib/glucomove-calcs.ts:calcMealMetrics()`. See `documentation/glucomove-data.md` for exact formulas.
+
+---
+
+## `glucomove_day_records`
+
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | Auto-generated |
+| `user_id` | uuid | NOT NULL | FK → auth.users |
+| `date` | date | NOT NULL | WIB calendar date (YYYY-MM-DD). Unique per user. |
+| `waking_glucose_mmol` | numeric | nullable | First reading of the day at or near wake-up time. Auto-populated at draft approval via closest-reading lookup. |
+| `overnight_avg_mmol` | numeric | nullable | **Deprecated as a manually-stored field.** Now computed on read from `glucomove_readings` where WIB hour is 00:00–05:59. Column kept for backward compatibility. |
+| `daily_avg_mmol` | numeric | nullable | **Deprecated as a manually-stored field.** Now computed on read from all `glucomove_readings` for that WIB date. Column kept for backward compatibility. |
+| `potential_sensor_issue` | boolean | NOT NULL, default false | Day-level sensor quality flag |
+| `notes` | text | nullable | Day-level free text |
+| `created_at` | timestamptz | default now() | |
+
+**Upsert key**: `(user_id, date)` — only one record per calendar day per user.
+
+**Computed-on-read fields** (sourced from `glucomove_readings`, not this table):
+- `daily_avg_mmol`: mean of all readings on this WIB date
+- `overnight_avg_mmol`: mean of readings where WIB hour < 6
+
+---
+
+## `glucomove_events`
+
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | Auto-generated |
+| `user_id` | uuid | NOT NULL | FK → auth.users |
+| `name` | text | NOT NULL | Short event name |
+| `event_type` | text | NOT NULL | `stress` \| `exercise` \| `alcohol` \| `illness` \| `sleep` \| `travel` \| `fasting` \| `medication` \| `other` |
+| `start_time` | timestamptz | NOT NULL | UTC |
+| `end_time` | timestamptz | nullable | Null for instantaneous events (e.g. medication) |
+| `intensity` | text | nullable | `low` \| `moderate` \| `high` \| null |
+| `notes` | text | nullable | Free text |
+| `created_at` | timestamptz | default now() | |
+
+**Role in peak detection**: Event `start_time` is used as a cutoff for meal peak search — see `documentation/glucomove-data.md` §Peak detection.
+
+---
+
+## `glucomove_telegram_drafts`
+
+| Column | Type | Nullable | Notes |
+|---|---|---|---|
+| `id` | uuid | PK | Auto-generated |
+| `user_id` | uuid | NOT NULL | FK → auth.users |
+| `raw_text` | text | NOT NULL | Original message text as sent via Telegram |
+| `sent_at` | timestamptz | NOT NULL | UTC timestamp when the message was received |
+| `parsed_data` | jsonb | NOT NULL | Claude-parsed structured data. Shape varies by `type`. |
+| `type` | text | NOT NULL | `day_record` \| `meal` \| `glucose_reading` \| `event` \| `unknown` |
+| `date` | date | NOT NULL | WIB date the record belongs to, extracted during parsing |
+| `status` | text | NOT NULL, default `'pending'` | `pending` \| `approved` \| `dismissed` |
+| `created_at` | timestamptz | default now() | |
+
+**Lifecycle**: Created by `/api/glucomove/telegram-webhook`. Reviewed and approved via the Drafts UI (`/glucomove/drafts`). On approval, data is written to the appropriate target table and `status` set to `approved`. Dismissed drafts have `status = 'dismissed'` and are never written. Pending drafts appear in the Drafts review queue.
+
+**`parsed_data` shape by type**:
+- `day_record`: `{ waking_glucose_mmol, overnight_avg_mmol, daily_avg_mmol, notes, time? }`
+- `meal`: Full meal object matching `glucomove_meals` columns plus `time` (HH:MM string)
+- `glucose_reading`: `{ glucose_mmol, time?, is_fasting, notes }`
+- `event`: `{ name, event_type, time?, end_time?, intensity, notes }`
+- `unknown`: `{ notes: raw_message }`
+
+---
+
+## Glucomove relationships
+
+```
+glucomove_day_records (1) ──── (many) glucomove_meals     [day_record_id, optional]
+glucomove_meals       (1) ──── (many) glucomove_readings  [meal_id, optional]
+glucomove_readings          free-floating when meal_id IS NULL
+
+Meals and day records are always queryable by (user_id + WIB date window)
+without relying on the FK — the FK is supplemental, not required.
+
+glucomove_events are standalone; they influence peak detection logic at
+query time but have no FK relationship to meals.
+```
+
+---
+
+## Glucomove data lifecycle
+
+| Table | Created by | Mutable | Deleted by |
+|---|---|---|---|
+| `glucomove_readings` | iOS Shortcuts sync (primary); Telegram draft approval | No | Manual only |
+| `glucomove_meals` | Telegram draft approval; manual UI entry | Yes (edit page) | Manual only |
+| `glucomove_day_records` | Telegram draft approval (`upsert`) | Yes (waking glucose editable) | Manual only |
+| `glucomove_events` | Telegram draft approval | No edit UI yet | Manual only |
+| `glucomove_telegram_drafts` | Telegram webhook | Status only (`pending→approved/dismissed`) | Never deleted |

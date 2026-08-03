@@ -28,7 +28,8 @@ export interface MealMetrics {
   finalDiffFromBaselineMmol: number | null;
   observationDurationMinutes: number | null;
   returnToBaselineMinutes: number | null;
-  minutesBelow7_8: number | null;
+  minutesAbove7_8: number | null;
+  minutesPeakToBelow7_8: number | null;
   iAUC: number | null;
   postPeakLowMmol: number | null;
   dropFromPeakMmol: number | null;
@@ -40,7 +41,9 @@ const RETURN_TOLERANCE = 0.6; // mmol/L above baseline counts as "near baseline"
 
 export function calcMealMetrics(
   readings: GlucoseReading[],
-  mealStartTime: string
+  mealStartTime: string,
+  // Next meal or event start time (ms); peak search is capped here with a 60-min minimum floor
+  peakCutoffMs?: number
 ): MealMetrics {
   if (readings.length === 0) {
     return nullMetrics("insufficient_data");
@@ -60,7 +63,22 @@ export function calcMealMetrics(
   }
 
   const baselineIdx = sorted.indexOf(baseline);
-  const postBaseline = sorted.slice(baselineIdx + 1);
+  const allPostBaseline = sorted.slice(baselineIdx + 1);
+
+  if (allPostBaseline.length === 0) {
+    return {
+      ...nullMetrics("insufficient_data"),
+      baselineGlucoseMmol: baseline.glucose_mmol,
+    };
+  }
+
+  // Cap observation window at next meal/event, with 60-min minimum floor from meal start
+  const effectiveCutoff = peakCutoffMs != null
+    ? Math.max(mealStart + 60 * 60 * 1000, peakCutoffMs)
+    : null;
+  const postBaseline = effectiveCutoff
+    ? allPostBaseline.filter(r => new Date(r.timestamp).getTime() <= effectiveCutoff)
+    : allPostBaseline;
 
   if (postBaseline.length === 0) {
     return {
@@ -69,7 +87,7 @@ export function calcMealMetrics(
     };
   }
 
-  // Peak: highest reading after baseline
+  // Peak: highest reading in the observation window
   const peak = postBaseline.reduce((a, b) => b.glucose_mmol > a.glucose_mmol ? b : a);
   const peakIdx = postBaseline.indexOf(peak);
 
@@ -78,7 +96,7 @@ export function calcMealMetrics(
     (new Date(peak.timestamp).getTime() - new Date(mealStartTime).getTime()) / 60000
   );
 
-  const finalReading = sorted.at(-1)!;
+  const finalReading = postBaseline.at(-1)!;
   const finalDiff = round1(finalReading.glucose_mmol - baseline.glucose_mmol);
   const observationMinutes = Math.round(
     (new Date(finalReading.timestamp).getTime() - new Date(baseline.timestamp).getTime()) / 60000
@@ -87,28 +105,25 @@ export function calcMealMetrics(
   // Post-peak readings
   const postPeak = postBaseline.slice(peakIdx + 1);
 
-  // iAUC: trapezoidal integration of (glucose − baseline) above baseline
-  const allFromBaseline = [baseline, ...postBaseline];
-  let iAUCRaw = 0;
-  for (let i = 1; i < allFromBaseline.length; i++) {
-    const r1 = allFromBaseline[i - 1];
-    const r2 = allFromBaseline[i];
-    const h1 = Math.max(0, r1.glucose_mmol - baseline.glucose_mmol);
-    const h2 = Math.max(0, r2.glucose_mmol - baseline.glucose_mmol);
-    const dt = (new Date(r2.timestamp).getTime() - new Date(r1.timestamp).getTime()) / 60000;
-    iAUCRaw += (h1 + h2) / 2 * dt;
-  }
-  const iAUC = Math.round(iAUCRaw);
+  // iAUC-120: positive incremental AUC from meal start to exactly 120 min, above pre-meal baseline
+  const iAUC = calcIAUC120(sorted, mealStart, baseline.glucose_mmol);
 
-  // Time from meal start until glucose falls back below 7.8 (only when peak > 7.8)
-  const minutesBelow7_8 = peak.glucose_mmol <= 7.8
+  // Time above 7.8 and peak-to-below-7.8 (only when meal crossed 7.8)
+  const firstBelow7_8AfterPeak = peak.glucose_mmol <= 7.8
     ? null
-    : (() => {
-        const firstBelow = postPeak.find(r => r.glucose_mmol <= 7.8);
-        return firstBelow
-          ? Math.round((new Date(firstBelow.timestamp).getTime() - new Date(mealStartTime).getTime()) / 60000)
-          : null;
-      })();
+    : postPeak.find(r => r.glucose_mmol <= 7.8) ?? null;
+
+  const firstAbove7_8 = peak.glucose_mmol <= 7.8
+    ? null
+    : [baseline, ...postBaseline].find(r => r.glucose_mmol > 7.8) ?? null;
+
+  const minutesAbove7_8 = firstAbove7_8 && firstBelow7_8AfterPeak
+    ? Math.round((new Date(firstBelow7_8AfterPeak.timestamp).getTime() - new Date(firstAbove7_8.timestamp).getTime()) / 60000)
+    : null;
+
+  const minutesPeakToBelow7_8 = firstBelow7_8AfterPeak
+    ? Math.round((new Date(firstBelow7_8AfterPeak.timestamp).getTime() - new Date(peak.timestamp).getTime()) / 60000)
+    : null;
 
   // Return near baseline
   const returnReading = postPeak.find(r => r.glucose_mmol <= baseline.glucose_mmol + RETURN_TOLERANCE);
@@ -131,7 +146,7 @@ export function calcMealMetrics(
     returnToBaselineMinutes,
     postPeakLowMmol,
     finalReading.glucose_mmol,
-    sorted.length,
+    1 + postBaseline.length, // readings in observation window (baseline + post)
     postPeak
   );
 
@@ -145,13 +160,59 @@ export function calcMealMetrics(
     finalDiffFromBaselineMmol: finalDiff,
     observationDurationMinutes: observationMinutes,
     returnToBaselineMinutes,
-    minutesBelow7_8,
+    minutesAbove7_8,
+    minutesPeakToBelow7_8,
     iAUC,
     postPeakLowMmol,
     dropFromPeakMmol,
     responseBand,
     responseShape,
   };
+}
+
+function calcIAUC120(
+  sorted: GlucoseReading[],
+  mealStartMs: number,
+  baselineGlucose: number
+): number | null {
+  const endMs = mealStartMs + 120 * 60 * 1000;
+
+  // Only readings strictly after meal start
+  const postMeal = sorted.filter(r => new Date(r.timestamp).getTime() > mealStartMs);
+
+  // Adequate coverage requires at least one reading at or beyond the 120-min mark
+  if (!postMeal.some(r => new Date(r.timestamp).getTime() >= endMs)) return null;
+
+  const inWindow = postMeal.filter(r => new Date(r.timestamp).getTime() <= endMs);
+  const firstAfter = postMeal.find(r => new Date(r.timestamp).getTime() > endMs);
+
+  // Anchor at t=0 with baseline glucose, then add in-window readings
+  const pts: { t: number; g: number }[] = [
+    { t: 0, g: baselineGlucose },
+    ...inWindow.map(r => ({
+      t: (new Date(r.timestamp).getTime() - mealStartMs) / 60000,
+      g: r.glucose_mmol,
+    })),
+  ];
+
+  // Interpolate at exactly t=120 when readings straddle the boundary
+  const lastIn = inWindow.at(-1);
+  const lastBeforeMs = lastIn ? new Date(lastIn.timestamp).getTime() : mealStartMs;
+  const lastBeforeG  = lastIn ? lastIn.glucose_mmol : baselineGlucose;
+
+  if (firstAfter && lastBeforeMs < endMs) {
+    const frac = (endMs - lastBeforeMs) / (new Date(firstAfter.timestamp).getTime() - lastBeforeMs);
+    pts.push({ t: 120, g: lastBeforeG + frac * (firstAfter.glucose_mmol - lastBeforeG) });
+  }
+
+  // Trapezoidal integration — positive increments above baseline only
+  let area = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const h1 = Math.max(0, pts[i - 1].g - baselineGlucose);
+    const h2 = Math.max(0, pts[i].g - baselineGlucose);
+    area += (h1 + h2) / 2 * (pts[i].t - pts[i - 1].t);
+  }
+  return Math.round(area * 10) / 10;
 }
 
 function calcResponseBand(spikeMmol: number): ResponseBand {
@@ -200,7 +261,8 @@ function nullMetrics(shape: ResponseShape): MealMetrics {
     finalDiffFromBaselineMmol: null,
     observationDurationMinutes: null,
     returnToBaselineMinutes: null,
-    minutesBelow7_8: null,
+    minutesAbove7_8: null,
+    minutesPeakToBelow7_8: null,
     iAUC: null,
     postPeakLowMmol: null,
     dropFromPeakMmol: null,
@@ -248,6 +310,7 @@ export const PRIMARY_CARB_LABEL: Record<string, string> = {
   sugar_dessert: "Sugar or dessert",
   quinoa: "Quinoa",
   cauliflower_rice: "Cauliflower rice",
+  potato: "Potato",
   other: "Other",
 };
 
@@ -283,6 +346,33 @@ export const MEAL_TYPE_LABEL: Record<string, string> = {
   snack: "Snack",
   other: "Other",
 };
+
+export interface SensorErrorPeriod {
+  start: string; // "HH:MM" WIB
+  end: string;   // "HH:MM" WIB; "00:00" = end of day
+}
+
+function parseHHMM(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export function isInSensorErrorPeriod(
+  timestamp: string,
+  periods: SensorErrorPeriod[]
+): boolean {
+  if (!periods.length) return false;
+  const wibMs = new Date(timestamp).getTime() + 7 * 60 * 60 * 1000;
+  const d = new Date(wibMs);
+  const wibMin = d.getUTCHours() * 60 + d.getUTCMinutes();
+  return periods.some(({ start, end }) => {
+    const s = parseHHMM(start);
+    const e = parseHHMM(end);
+    const effectiveEnd = e === 0 ? 1440 : e;
+    if (effectiveEnd > s) return wibMin >= s && wibMin < effectiveEnd;
+    return wibMin >= s || wibMin < effectiveEnd; // spans midnight
+  });
+}
 
 export function mmol(v: number | null): string {
   if (v === null) return "—";

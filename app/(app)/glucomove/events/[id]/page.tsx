@@ -1,18 +1,13 @@
 import Link from "next/link";
 import { getEventWithReadings } from "@/lib/glucomove-queries";
-import { colors } from "@/lib/tokens";
+import { colors, glucomoveEventColors } from "@/lib/tokens";
 import EventEditor from "./EventEditor";
 import EventObservationPanel from "./EventObservationPanel";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   stress: "Stress", exercise: "Exercise", alcohol: "Alcohol",
   illness: "Illness", sleep: "Sleep", travel: "Travel",
-  fasting: "Fasting", medication: "Medication", other: "Other",
-};
-const EVENT_TYPE_COLOR: Record<string, string> = {
-  stress: "#B5522A", exercise: "#5C8A6A", alcohol: "#6E3D8C",
-  illness: "#B5522A", sleep: "#2E547A", travel: "#A8882A",
-  fasting: "#8A8178", medication: "#2E547A", other: "#8A8178",
+  fasting: "Fasting", medication: "Medication", recovery: "Recovery", other: "Other",
 };
 
 function toWIBDate(utcTs: string): string {
@@ -35,7 +30,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
 
   const { event, readings } = result;
   const eventDate = toWIBDate(event.start_time);
-  const evColor = EVENT_TYPE_COLOR[event.event_type] ?? colors.inkMuted;
+  const evColor = glucomoveEventColors[event.event_type] ?? colors.inkMuted;
 
   return (
     <div style={{ padding: "40px 64px", maxWidth: "640px" }}>

@@ -55,3 +55,16 @@ export const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
 
 export type CategoryKey = keyof typeof colors.category;
 export type StatusBadge = keyof typeof colors.badge;
+
+export const glucomoveEventColors: Record<string, string> = {
+  stress:     colors.category.inflammation,
+  exercise:   colors.category.metabolic,
+  alcohol:    colors.category.hormonal,
+  illness:    colors.category.inflammation,
+  sleep:      colors.category.cardiovascular,
+  travel:     colors.category.nutritional,
+  fasting:    colors.inkMuted,
+  medication: colors.category.cardiovascular,
+  recovery:   colors.category.vitals,
+  other:      colors.inkMuted,
+};

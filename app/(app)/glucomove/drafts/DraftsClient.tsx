@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { colors } from "@/lib/tokens";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { PRIMARY_CARB_LABEL, MEAL_TYPE_LABEL } from "@/lib/glucomove-calcs";
+import Button from "@/components/Button";
 
 type Draft = Record<string, unknown>;
 
 interface DraftEdits {
   waking: string; overnight: string; daily: string;
+  badSleep: boolean; alcoholPrevNight: boolean;
   mealName: string; mealDesc: string; mealType: string;
   carbSource: string[]; carbProminence: string;
   acvBefore: boolean; structuredEating: boolean;
@@ -27,6 +29,8 @@ function initEdits(draft: Draft): DraftEdits {
     waking: String(p.waking_glucose_mmol ?? ""),
     overnight: String(p.overnight_avg_mmol ?? ""),
     daily: String(p.daily_avg_mmol ?? ""),
+    badSleep: Boolean(p.bad_sleep),
+    alcoholPrevNight: Boolean(p.alcohol_previous_night),
     mealName: String(p.name ?? ""),
     mealDesc: String(p.description ?? ""),
     mealType: String(p.meal_type ?? "other"),
@@ -76,11 +80,39 @@ async function approveOne(
   const sentAt = new Date(draft.sent_at as string);
 
   if (type === "day_record") {
+    let wakingGlucose = e.waking ? parseFloat(e.waking) : null;
+
+    if (wakingGlucose === null) {
+      // Auto-lookup: find the closest reading to the specified wake-up time (or sentAt)
+      const p = draft.parsed_data as Record<string, unknown>;
+      const timeStr = typeof p.time === "string" && /^\d{1,2}:\d{2}$/.test(p.time) ? p.time : null;
+      const targetMs = timeStr
+        ? new Date(`${date}T${timeStr}:00+07:00`).getTime()
+        : sentAt.getTime();
+
+      const { data: dayReadings } = await supabase
+        .from("glucomove_readings")
+        .select("timestamp, glucose_mmol")
+        .eq("user_id", userId)
+        .gte("timestamp", `${date}T00:00:00+07:00`)
+        .lte("timestamp", `${date}T23:59:59+07:00`);
+
+      if (dayReadings && dayReadings.length > 0) {
+        const closest = dayReadings.reduce((best, r) =>
+          Math.abs(new Date(r.timestamp).getTime() - targetMs) <
+          Math.abs(new Date(best.timestamp).getTime() - targetMs) ? r : best
+        );
+        wakingGlucose = closest.glucose_mmol;
+      }
+    }
+
     const { error } = await supabase.from("glucomove_day_records").upsert({
       user_id: userId, date,
-      waking_glucose_mmol: e.waking ? parseFloat(e.waking) : null,
+      waking_glucose_mmol: wakingGlucose,
       overnight_avg_mmol: e.overnight ? parseFloat(e.overnight) : null,
       daily_avg_mmol: e.daily ? parseFloat(e.daily) : null,
+      bad_sleep: e.badSleep,
+      alcohol_previous_night: e.alcoholPrevNight,
     }, { onConflict: "user_id,date" });
     return error?.message ?? null;
   }
@@ -138,16 +170,16 @@ const TYPE_LABEL: Record<string, string> = {
 };
 const TYPE_COLOR: Record<string, string> = {
   day_record: colors.badge.optimal, meal: colors.ink,
-  glucose_reading: colors.badge.stable, event: "#B5522A", unknown: colors.inkMuted,
+  glucose_reading: colors.badge.stable, event: colors.category.inflammation, unknown: colors.inkMuted,
 };
 
 function compactSummary(draft: Draft): string {
   const p = draft.parsed_data as Record<string, unknown>;
   const type = draft.type as string;
   if (type === "day_record") {
-    const parts = [];
-    if (p.waking_glucose_mmol) parts.push(`Waking: ${p.waking_glucose_mmol} mmol/L`);
-    return parts.length > 0 ? parts.join(" · ") : "No waking glucose";
+    if (p.waking_glucose_mmol) return `Waking: ${p.waking_glucose_mmol} mmol/L`;
+    const timeStr = typeof p.time === "string" ? p.time : null;
+    return timeStr ? `Waking: auto-lookup near ${timeStr}` : "Waking: auto-lookup (now)";
   }
   if (type === "meal") return `${String(p.name ?? "—")} — ${MEAL_TYPE_LABEL[String(p.meal_type ?? "")] ?? "Meal"}`;
   if (type === "glucose_reading") return `${p.glucose_mmol} mmol/L`;
@@ -222,13 +254,11 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
 
           <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
             {canSelect && (
-              <button onClick={() => setExpanded(x => !x)} style={{ padding: "4px 10px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+              <Button size="sm" variant="ghost" onClick={() => setExpanded(x => !x)}>
                 {expanded ? "Close" : "Edit"}
-              </button>
+              </Button>
             )}
-            <button onClick={onDismiss} style={{ padding: "4px 10px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
-              Dismiss
-            </button>
+            <Button size="sm" variant="ghost" onClick={onDismiss}>Dismiss</Button>
           </div>
         </div>
 
@@ -240,10 +270,22 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
             </p>
 
             {type === "day_record" && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
-                <div><FL>Waking (mmol/L)</FL><input type="number" step="0.1" value={edits.waking} onChange={e => onEdit("waking", e.target.value)} style={inputSt()} /></div>
-                <div><FL>Overnight avg</FL><input type="number" step="0.1" value={edits.overnight} onChange={e => onEdit("overnight", e.target.value)} style={inputSt()} /></div>
-                <div><FL>Daily avg</FL><input type="number" step="0.1" value={edits.daily} onChange={e => onEdit("daily", e.target.value)} style={inputSt()} /></div>
+              <div style={{ display: "flex", flexDirection: "column" as const, gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                  <div><FL>Waking (mmol/L)</FL><input type="number" step="0.1" value={edits.waking} onChange={e => onEdit("waking", e.target.value)} style={inputSt()} /></div>
+                  <div><FL>Overnight avg</FL><input type="number" step="0.1" value={edits.overnight} onChange={e => onEdit("overnight", e.target.value)} style={inputSt()} /></div>
+                  <div><FL>Daily avg</FL><input type="number" step="0.1" value={edits.daily} onChange={e => onEdit("daily", e.target.value)} style={inputSt()} /></div>
+                </div>
+                <div style={{ display: "flex", gap: "16px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                    <input type="checkbox" checked={edits.badSleep} onChange={e => onEdit("badSleep", e.target.checked)} style={{ accentColor: colors.ink }} />
+                    Bad sleep previous night
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "12px", color: colors.inkMuted }}>
+                    <input type="checkbox" checked={edits.alcoholPrevNight} onChange={e => onEdit("alcoholPrevNight", e.target.checked)} style={{ accentColor: colors.ink }} />
+                    Alcohol previous night
+                  </label>
+                </div>
               </div>
             )}
 
@@ -266,9 +308,9 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
                       {Object.entries(PRIMARY_CARB_LABEL).map(([v, l]) => {
                         const active = edits.carbSource.includes(v);
                         return (
-                          <button key={v} type="button" onClick={() => onEdit("carbSource", active ? edits.carbSource.filter(x => x !== v) : [...edits.carbSource, v])} style={{ padding: "4px 10px", borderRadius: "4px", border: `1px solid ${active ? colors.ink : colors.border}`, backgroundColor: active ? colors.ink : "transparent", color: active ? colors.background : colors.inkMuted, fontFamily: "var(--font-dm-sans)", fontSize: "11px", cursor: "pointer" }}>
+                          <Button key={v} size="sm" variant={active ? "primary" : "ghost"} type="button" onClick={() => onEdit("carbSource", active ? edits.carbSource.filter(x => x !== v) : [...edits.carbSource, v])}>
                             {l}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -340,7 +382,7 @@ function DraftRow({ draft, isSelected, onToggle, edits, onEdit, onDismiss, rowEr
                   <div>
                     <FL>Type</FL>
                     <select value={edits.eventType} onChange={e => onEdit("eventType", e.target.value)} style={{ ...inputSt(), appearance: "none" as const }}>
-                      {["stress","exercise","alcohol","illness","sleep","travel","fasting","medication","other"].map(t => (
+                      {["stress","exercise","recovery","alcohol","illness","sleep","travel","fasting","medication","other"].map(t => (
                         <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
                       ))}
                     </select>
@@ -483,32 +525,22 @@ export default function DraftsClient({ drafts, grouped, sortedDates }: {
             </span>
           )}
 
-          <button
+          <Button
+            variant="ghost"
             onClick={() => runApprove(approveableIds.filter(id => selected.has(id)))}
             disabled={saving || selectedCount === 0}
-            style={{
-              padding: "7px 14px", backgroundColor: "transparent",
-              color: selectedCount === 0 ? colors.inkMuted : colors.ink,
-              border: `1px solid ${selectedCount === 0 ? colors.border : colors.ink}`,
-              borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px",
-              cursor: selectedCount === 0 || saving ? "not-allowed" : "pointer",
-            }}
+            style={selectedCount > 0 ? { color: colors.ink, border: `1px solid ${colors.ink}` } : {}}
           >
             {saving ? "Saving…" : `Approve selected${selectedCount > 0 ? ` (${selectedCount})` : ""}`}
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="primary"
             onClick={() => runApprove(approveableIds)}
             disabled={saving}
-            style={{
-              padding: "7px 14px", backgroundColor: saving ? colors.inkMuted : colors.ink,
-              color: colors.background, border: "none", borderRadius: "4px",
-              fontFamily: "var(--font-dm-sans)", fontSize: "13px",
-              cursor: saving ? "not-allowed" : "pointer",
-            }}
           >
             Approve all
-          </button>
+          </Button>
         </div>
       )}
 

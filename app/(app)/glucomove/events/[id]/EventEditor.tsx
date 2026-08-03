@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 const EVENT_TYPES = [
   { value: "stress",     label: "Stress" },
   { value: "exercise",   label: "Exercise" },
+  { value: "recovery",   label: "Recovery" },
   { value: "alcohol",    label: "Alcohol" },
   { value: "illness",    label: "Illness" },
   { value: "sleep",      label: "Sleep" },
