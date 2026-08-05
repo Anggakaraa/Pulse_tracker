@@ -8,6 +8,7 @@ import { colors, glucomoveEventColors } from "@/lib/tokens";
 import {
   mmol, mmolDiff,
   MEAL_TYPE_LABEL, RESPONSE_BAND_COLOR, RESPONSE_BAND_LABEL,
+  isInSensorErrorPeriod, type SensorErrorPeriod,
 } from "@/lib/glucomove-calcs";
 import DayGlucoseChart from "./DayGlucoseChart";
 import DayReadingsList from "./DayReadingsList";
@@ -40,6 +41,28 @@ export default async function GlucomovePage() {
   const mealsWithMetrics = await Promise.all(
     todayMeals.map(meal => getMealWithReadings(meal.id))
   );
+
+  // Compute daily avg and overnight avg from readings, excluding sensor error periods
+  const errorPeriods = (Array.isArray((todayRecord as Record<string, unknown>)?.sensor_error_periods)
+    ? (todayRecord as Record<string, unknown>).sensor_error_periods
+    : []) as SensorErrorPeriod[];
+  const cleanReadings = todayReadings.filter(r => !isInSensorErrorPeriod(r.timestamp, errorPeriods));
+  function toWIBHour(ts: string) {
+    return new Date(new Date(ts).getTime() + 7 * 3600000).getUTCHours();
+  }
+  const overnightReadings = cleanReadings.filter(r => toWIBHour(r.timestamp) < 6);
+  const overnightAvg = overnightReadings.length > 0
+    ? overnightReadings.reduce((s, r) => s + r.glucose_mmol, 0) / overnightReadings.length
+    : null;
+  const dailyAvg = cleanReadings.length > 0
+    ? cleanReadings.reduce((s, r) => s + r.glucose_mmol, 0) / cleanReadings.length
+    : null;
+
+  const glucoseValues = cleanReadings.map(r => r.glucose_mmol);
+  const sd = glucoseValues.length >= 6 && dailyAvg !== null
+    ? Math.round(Math.sqrt(glucoseValues.reduce((s, v) => s + Math.pow(v - dailyAvg, 2), 0) / glucoseValues.length) * 10) / 10
+    : null;
+  const cv = sd !== null && dailyAvg ? Math.round((sd / dailyAvg) * 100) : null;
 
   // Merge meals + events into a single timeline sorted by start time
   type TimelineItem =
@@ -84,31 +107,30 @@ export default async function GlucomovePage() {
       </div>
 
       {/* Day record strip */}
-      {todayRecord ? (
-        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: "40px" }}>
-            {todayRecord.waking_glucose_mmol != null && (
-              <Stat label="Waking glucose" value={mmol(todayRecord.waking_glucose_mmol)} />
-            )}
-            {todayRecord.overnight_avg_mmol && <Stat label="Overnight avg" value={mmol(todayRecord.overnight_avg_mmol)} />}
-            {todayRecord.daily_avg_mmol && <Stat label="Daily avg" value={mmol(todayRecord.daily_avg_mmol)} />}
-          </div>
-          <Link href={`/glucomove/days/${todayRecord.id}`} style={{ textDecoration: "none" }}>
-            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-              Edit day →
-            </span>
-          </Link>
+      <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: "40px" }}>
+          {todayRecord?.waking_glucose_mmol != null && (
+            <Stat label="Waking glucose" value={mmol(todayRecord.waking_glucose_mmol)} />
+          )}
+          {overnightAvg != null && <Stat label="Overnight avg" value={mmol(overnightAvg)} />}
+          {dailyAvg != null && <Stat label="Daily avg" value={mmol(dailyAvg)} />}
+          {cv !== null && <Stat label="% CV" value={`${cv}%`} />}
+          {!todayRecord && overnightAvg == null && dailyAvg == null && (
+            <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+              No readings yet today.
+            </p>
+          )}
         </div>
-      ) : (
-        <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "14px 20px", marginBottom: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
-            No waking / daily glucose logged yet.
-          </p>
+        {todayRecord ? (
+          <Link href={`/glucomove/days/${todayRecord.id}`} style={{ textDecoration: "none" }}>
+            <span style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>Edit day →</span>
+          </Link>
+        ) : (
           <Link href={`/glucomove/days/new?date=${today}`} style={{ textDecoration: "none" }}>
             <Button variant="ghost">Log day record</Button>
           </Link>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Glucose movement chart */}
       {todayReadings.length >= 2 && (

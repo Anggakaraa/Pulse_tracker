@@ -26,6 +26,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
   const [sensorIssue, setSensorIssue] = useState(Boolean(day.potential_sensor_issue));
   const [badSleep, setBadSleep] = useState(Boolean(day.bad_sleep));
   const [alcoholPrevNight, setAlcoholPrevNight] = useState(Boolean(day.alcohol_previous_night));
+  const [highCoffee, setHighCoffee] = useState(Boolean(day.high_coffee));
   const [errorPeriods, setErrorPeriods] = useState<SensorErrorPeriod[]>(
     Array.isArray(day.sensor_error_periods) ? (day.sensor_error_periods as SensorErrorPeriod[]) : []
   );
@@ -55,6 +56,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
         potential_sensor_issue: sensorIssue,
         bad_sleep: badSleep,
         alcohol_previous_night: alcoholPrevNight,
+        high_coffee: highCoffee,
         sensor_error_periods: errorPeriods,
         updated_at: new Date().toISOString(),
       })
@@ -67,7 +69,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
 
   if (!open) {
     return (
-      <div style={{ marginBottom: "24px" }}>
+      <div>
         <button onClick={() => setOpen(true)} style={{ padding: "7px 14px", backgroundColor: "transparent", color: colors.inkMuted, border: `1px solid ${colors.border}`, borderRadius: "4px", fontFamily: "var(--font-dm-sans)", fontSize: "13px", cursor: "pointer" }}>
           Edit day record
         </button>
@@ -76,7 +78,7 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
   }
 
   return (
-    <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px" }}>
+    <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px" }}>
       <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted, marginBottom: "16px" }}>
         Edit day record
       </p>
@@ -96,6 +98,10 @@ export default function DayRecordEditor({ day }: { day: Record<string, unknown> 
         <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, userSelect: "none" }}>
           <input type="checkbox" checked={alcoholPrevNight} onChange={e => setAlcoholPrevNight(e.target.checked)} style={{ accentColor: colors.ink, width: "14px", height: "14px" }} />
           Alcohol previous night
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, userSelect: "none" }}>
+          <input type="checkbox" checked={highCoffee} onChange={e => setHighCoffee(e.target.checked)} style={{ accentColor: colors.ink, width: "14px", height: "14px" }} />
+          Higher than usual coffee intake
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted, userSelect: "none" }}>
           <input type="checkbox" checked={sensorIssue} onChange={e => setSensorIssue(e.target.checked)} style={{ accentColor: colors.ink, width: "14px", height: "14px" }} />

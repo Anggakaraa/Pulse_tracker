@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase";
-import { calcMealMetrics } from "@/lib/glucomove-calcs";
+import { calcMealMetrics, isInSensorErrorPeriod, type SensorErrorPeriod } from "@/lib/glucomove-calcs";
 
 // WIB = UTC+7; used for all "today" date calculations
 function getDateWIB(): string {
@@ -224,7 +224,7 @@ export async function getAllDatesWithActivity(userId: string) {
   const [{ data: dayRecords }, { data: meals }, { data: readings }] = await Promise.all([
     supabase
       .from("glucomove_day_records")
-      .select("id, date, waking_glucose_mmol, potential_sensor_issue")
+      .select("id, date, waking_glucose_mmol, potential_sensor_issue, sensor_error_periods")
       .eq("user_id", userId),
     supabase
       .from("glucomove_meals")
@@ -233,7 +233,8 @@ export async function getAllDatesWithActivity(userId: string) {
     supabase
       .from("glucomove_readings")
       .select("timestamp, glucose_mmol")
-      .eq("user_id", userId),
+      .eq("user_id", userId)
+      .limit(50000),
   ]);
 
   const dayRecordByDate = new Map(
@@ -246,12 +247,12 @@ export async function getAllDatesWithActivity(userId: string) {
     mealCountByDate.set(date, (mealCountByDate.get(date) ?? 0) + 1);
   }
 
-  // Group readings by WIB date
-  const readingsByDate = new Map<string, number[]>();
+  // Group readings by WIB date, keeping timestamps for sensor error filtering
+  const readingsByDate = new Map<string, { timestamp: string; glucose_mmol: number }[]>();
   for (const r of readings ?? []) {
     const date = getDateWIBFromTimestamp(r.timestamp);
     const arr = readingsByDate.get(date) ?? [];
-    arr.push(r.glucose_mmol);
+    arr.push(r);
     readingsByDate.set(date, arr);
   }
 
@@ -263,19 +264,28 @@ export async function getAllDatesWithActivity(userId: string) {
   return [...allDates]
     .sort((a, b) => b.localeCompare(a))
     .map(date => {
-      const vals = readingsByDate.get(date) ?? [];
+      const raw = readingsByDate.get(date) ?? [];
+      const dayRecord = dayRecordByDate.get(date) ?? null;
+      const errorPeriods = (Array.isArray(dayRecord?.sensor_error_periods) ? dayRecord.sensor_error_periods : []) as SensorErrorPeriod[];
+      const clean = raw.filter(r => !isInSensorErrorPeriod(r.timestamp, errorPeriods));
+      const vals = clean.map(r => r.glucose_mmol);
       const avgGlucose = vals.length >= 1
         ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10
         : null;
       const twlPct = vals.length >= 6
         ? Math.round(vals.filter(v => v <= 7.8).length / vals.length * 100)
         : null;
+      const sd = vals.length >= 6 && avgGlucose !== null
+        ? Math.round(Math.sqrt(vals.reduce((s, v) => s + Math.pow(v - avgGlucose, 2), 0) / vals.length) * 10) / 10
+        : null;
+      const cv = sd !== null && avgGlucose ? Math.round((sd / avgGlucose) * 100) : null;
       return {
         date,
-        dayRecord: dayRecordByDate.get(date) ?? null,
+        dayRecord,
         mealCount: mealCountByDate.get(date) ?? 0,
         avgGlucose,
         twlPct,
+        cv,
       };
     });
 }

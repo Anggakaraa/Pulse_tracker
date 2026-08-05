@@ -10,6 +10,8 @@ import {
 } from "@/lib/glucomove-calcs";
 import DayRecordEditor from "./DayRecordEditor";
 import DayActions from "./DayActions";
+import RefinalizeButton from "./RefinalizeButton";
+import GenerateSummaryButton from "./GenerateSummaryButton";
 import DayGlucoseChart from "../../DayGlucoseChart";
 import DayReadingsList from "../../DayReadingsList";
 import Button from "@/components/Button";
@@ -42,6 +44,12 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
   const avg = (vals: number[]) => vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10 : null;
 
   const dailyAvg = avg(cleanReadings.map((r: { glucose_mmol: number }) => r.glucose_mmol));
+
+  const glucoseValues = cleanReadings.map((r: { glucose_mmol: number }) => r.glucose_mmol);
+  const sd = glucoseValues.length >= 6
+    ? Math.round(Math.sqrt(glucoseValues.reduce((s, v) => s + Math.pow(v - (dailyAvg ?? 0), 2), 0) / glucoseValues.length) * 10) / 10
+    : null;
+  const cv = sd !== null && dailyAvg ? Math.round((sd / dailyAvg) * 100) : null;
 
   // Overnight = readings between 00:00–06:00 WIB
   const overnightReadings = cleanReadings.filter((r: { timestamp: string }) => {
@@ -104,6 +112,7 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
           {overnightAvg !== null && <Stat label="Overnight avg" value={mmol(overnightAvg)} />}
           {dailyAvg !== null && <Stat label="Daily avg" value={mmol(dailyAvg)} />}
           {twlPct !== null && <Stat label="TWL" value={`${twlPct}%`} />}
+          {cv !== null && <Stat label="% CV" value={`${cv}%`} />}
         </div>
         {(day.bad_sleep || day.alcohol_previous_night || day.potential_sensor_issue) && (
           <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -125,6 +134,25 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
         )}
       </div>
 
+      {/* Day summary */}
+      <div style={{ border: `1px solid ${colors.border}`, borderRadius: "6px", padding: "20px 24px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: day.narrative ? "12px" : "0" }}>
+          <p style={{ fontFamily: "var(--font-outfit)", fontSize: "11px", fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: colors.inkMuted }}>
+            Day summary
+          </p>
+          <GenerateSummaryButton dayRecordId={day.id} />
+        </div>
+        {day.narrative ? (
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "14px", color: colors.ink, lineHeight: 1.65 }}>
+            {day.narrative}
+          </p>
+        ) : (
+          <p style={{ fontFamily: "var(--font-dm-sans)", fontSize: "13px", color: colors.inkMuted }}>
+            No summary yet — generate one once the day's data is in.
+          </p>
+        )}
+      </div>
+
       {/* Glucose chart */}
       {readings.length >= 2 && (
         <>
@@ -136,7 +164,10 @@ export default async function DayDetailPage({ params }: { params: Promise<{ id: 
       )}
 
       {/* Edit day record form */}
-      <DayRecordEditor day={day} />
+      <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginBottom: "24px" }}>
+        <DayRecordEditor day={day} />
+        <RefinalizeButton date={day.date} />
+      </div>
 
       {/* Derived day summary */}
       {meals.length > 0 && validSpikes.length > 0 && (
