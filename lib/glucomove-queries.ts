@@ -224,7 +224,7 @@ export async function getAllDatesWithActivity(userId: string) {
   const [{ data: dayRecords }, { data: meals }, { data: readings }] = await Promise.all([
     supabase
       .from("glucomove_day_records")
-      .select("id, date, waking_glucose_mmol, potential_sensor_issue, sensor_error_periods")
+      .select("id, date, waking_glucose_mmol, potential_sensor_issue, sensor_error_periods, daily_avg_mmol, twl_pct, cv_pct")
       .eq("user_id", userId),
     supabase
       .from("glucomove_meals")
@@ -264,8 +264,22 @@ export async function getAllDatesWithActivity(userId: string) {
   return [...allDates]
     .sort((a, b) => b.localeCompare(a))
     .map(date => {
-      const raw = readingsByDate.get(date) ?? [];
       const dayRecord = dayRecordByDate.get(date) ?? null;
+
+      // Use stored finalized metrics when available; fall back to on-the-fly for today
+      if (dayRecord?.daily_avg_mmol != null) {
+        return {
+          date,
+          dayRecord,
+          mealCount: mealCountByDate.get(date) ?? 0,
+          avgGlucose: dayRecord.daily_avg_mmol as number,
+          twlPct: dayRecord.twl_pct as number | null,
+          cv: dayRecord.cv_pct as number | null,
+        };
+      }
+
+      // On-the-fly fallback (today or days without a finalized record)
+      const raw = readingsByDate.get(date) ?? [];
       const errorPeriods = (Array.isArray(dayRecord?.sensor_error_periods) ? dayRecord.sensor_error_periods : []) as SensorErrorPeriod[];
       const clean = raw.filter(r => !isInSensorErrorPeriod(r.timestamp, errorPeriods));
       const vals = clean.map(r => r.glucose_mmol);
