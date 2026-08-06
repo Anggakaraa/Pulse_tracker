@@ -49,9 +49,26 @@ export async function POST(req: NextRequest) {
 
   // Wake-up shortcut — detect before calling the parser
   if (/\b(wake\s*up|woke\s*up|good\s*morning|bangun|pagi)\b/i.test(text)) {
-    const windowMs = 15 * 60 * 1000;
-    const from = new Date(sentAt.getTime() - windowMs).toISOString();
-    const to   = new Date(sentAt.getTime() + windowMs).toISOString();
+    // If the message mentions an explicit time (e.g. "waking up 6:30am", "bangun 06.30"),
+    // use that as the lookup anchor instead of the message sent time.
+    const timeMatch = text.match(/\b(\d{1,2})[.:](\d{2})\s*(am|pm)?\b/i);
+    let lookupAnchor = sentAt;
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const meridiem = timeMatch[3]?.toLowerCase();
+      if (meridiem === "pm" && hours < 12) hours += 12;
+      if (meridiem === "am" && hours === 12) hours = 0;
+      // Build the timestamp in WIB (UTC+7) for today's date
+      const wibDate = sentAt.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+      const wibIso = `${wibDate}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00+07:00`;
+      lookupAnchor = new Date(wibIso);
+    }
+
+    // Search ±90 min from anchor — CGM sync may lag, so cast a wide net then pick the closest
+    const windowMs = 90 * 60 * 1000;
+    const from = new Date(lookupAnchor.getTime() - windowMs).toISOString();
+    const to   = new Date(lookupAnchor.getTime() + windowMs).toISOString();
 
     const { data: nearby } = await supabase
       .from("glucomove_readings")
@@ -62,14 +79,14 @@ export async function POST(req: NextRequest) {
       .order("timestamp", { ascending: true });
 
     if (!nearby || nearby.length === 0) {
-      await sendMessage(chatId, "👋 Good morning! No glucose reading found within 15 min — check your CGM.");
+      await sendMessage(chatId, "👋 Good morning! No CGM reading found within 90 min of that time — check your sensor.");
       return NextResponse.json({ ok: true });
     }
 
-    // Pick the reading closest to sentAt
+    // Pick the reading closest to the lookup anchor
     const closest = nearby.reduce((best, r) =>
-      Math.abs(new Date(r.timestamp).getTime() - sentAt.getTime()) <
-      Math.abs(new Date(best.timestamp).getTime() - sentAt.getTime()) ? r : best
+      Math.abs(new Date(r.timestamp).getTime() - lookupAnchor.getTime()) <
+      Math.abs(new Date(best.timestamp).getTime() - lookupAnchor.getTime()) ? r : best
     );
 
     const date = sentAt.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
@@ -78,7 +95,10 @@ export async function POST(req: NextRequest) {
       { onConflict: "user_id,date", ignoreDuplicates: false }
     );
 
-    await sendMessage(chatId, `👋 Good morning! Waking glucose: ${closest.glucose_mmol.toFixed(1)} mmol/L`);
+    const readingTime = new Date(closest.timestamp).toLocaleTimeString("en-GB", {
+      timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit",
+    });
+    await sendMessage(chatId, `👋 Good morning! Waking glucose: ${closest.glucose_mmol.toFixed(1)} mmol/L (CGM @ ${readingTime} WIB)`);
     return NextResponse.json({ ok: true });
   }
 
