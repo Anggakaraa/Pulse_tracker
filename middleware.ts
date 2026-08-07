@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/api/telegram-webhook") && !pathname.startsWith("/api/glucomove/health-sync") && !pathname.startsWith("/api/glucomove/sync-nightscout") && !pathname.startsWith("/api/glucomove/finalize-day") && !pathname.startsWith("/api/glucomove/backfill-metrics")) {
+  if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/api/telegram-webhook") && !pathname.startsWith("/api/glucomove/health-sync") && !pathname.startsWith("/api/glucomove/sync-nightscout") && !pathname.startsWith("/api/glucomove/finalize-day") && !pathname.startsWith("/api/glucomove/backfill-metrics") && !pathname.startsWith("/api/keep-alive")) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     return NextResponse.redirect(loginUrl);
